@@ -63,7 +63,7 @@ One row per pickup game. Holds everything needed to render the location on the m
 
 Indexes:
 - `by_status` (`["status"]`) — moderation queue (pending), public list (approved).
-- `by_owner` (`["ownerId"]`) — owner dashboard listings.
+- `by_owner_and_status` (`["ownerId", "status"]`) — owner dashboard listings (prefix-only on `ownerId`) and the rate-limit check (`ownerId` + `status` for pending/rejected counts).
 - `by_status_and_town` (`["status", "town"]`) — public list filtered by town.
 
 ### `gameDays` (now scoped per location)
