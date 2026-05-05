@@ -15,6 +15,8 @@ export default defineSchema({
   ...authTables,
 
   // Override authTables.users to add a `role` field used by requireAdmin().
+  // Index names must match exactly what @convex-dev/auth expects internally —
+  // do not rename to follow the project's by_<field> convention.
   users: defineTable({
     email: v.optional(v.string()),
     name: v.optional(v.string()),
@@ -24,7 +26,9 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     role: v.optional(v.union(v.literal("admin"), v.literal("user"))),
-  }).index("email", ["email"]),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 
   settings: defineTable({
     dayOfWeek: v.number(), // 0 = Sunday … 6 = Saturday
