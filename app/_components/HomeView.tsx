@@ -25,7 +25,7 @@ export function HomeView() {
       </section>
       <Filters {...filters} onChange={setFilters} />
       <section className="py-6">
-        <LocationsList locations={locations ?? []} />
+        <LocationsList locations={locations ?? []} keyHash={`${filters.search}|${filters.town}|${filters.dayOfWeek}`} />
       </section>
     </>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { VERMONT_CENTER } from "../_lib/geocode";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), { ssr: false });
@@ -25,6 +26,8 @@ export type MapLocation = {
 export function LocationsMap({ locations }: { locations: MapLocation[] }) {
   // Defer the icon-fix to client mount (same pattern as LocationPin).
   const [iconReady, setIconReady] = useState(false);
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     (async () => {
       const L = (await import("leaflet")).default;
@@ -40,12 +43,31 @@ export function LocationsMap({ locations }: { locations: MapLocation[] }) {
     })();
   }, []);
 
+  // Pin-drop animation after markers mount in the DOM.
+  useEffect(() => {
+    if (!iconReady || !mapWrapperRef.current) return;
+    // Give Leaflet a tick to render marker icon DOM nodes before animating.
+    const raf = requestAnimationFrame(() => {
+      const icons = mapWrapperRef.current?.querySelectorAll(".leaflet-marker-icon");
+      if (icons && icons.length > 0) {
+        gsap.from(icons, {
+          scale: 0,
+          opacity: 0,
+          duration: 0.4,
+          ease: "back.out(2)",
+          stagger: 0.02,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [iconReady]);
+
   if (!iconReady) {
     return <div style={{ height: 480 }} className="rounded-md bg-zinc-100 dark:bg-zinc-900" />;
   }
 
   return (
-    <div style={{ height: 480 }} className="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
+    <div ref={mapWrapperRef} style={{ height: 480 }} className="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
       <MapContainer
         center={VERMONT_CENTER}
         zoom={8}

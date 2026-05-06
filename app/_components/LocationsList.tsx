@@ -14,12 +14,12 @@ export type ListLocation = {
   lastSession: { date: string; turnout?: number } | null;
 };
 
-export function LocationsList({ locations }: { locations: ListLocation[] }) {
+export function LocationsList({ locations, keyHash }: { locations: ListLocation[]; keyHash?: string }) {
   if (!locations.length) {
     return <p className="px-6 text-sm text-zinc-500">No matches. Try clearing filters.</p>;
   }
   return (
-    <MotionShell variant="fade-up">
+    <MotionShell key={keyHash} variant="fade-up">
       <ul className="grid grid-cols-1 gap-3 px-6 sm:grid-cols-2">
         {locations.map((l) => (
           <li key={l._id} className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
