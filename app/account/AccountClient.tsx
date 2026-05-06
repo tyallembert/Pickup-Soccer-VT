@@ -39,7 +39,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
         {locations === undefined ? (
           <p className="mt-2 text-sm text-zinc-500">Loading…</p>
         ) : locations.length === 0 ? (
-          <p className="mt-2 text-sm">You haven't submitted any pickup games yet.</p>
+          <p className="mt-2 text-sm">You haven&apos;t submitted any pickup games yet.</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {locations.map((l) => (

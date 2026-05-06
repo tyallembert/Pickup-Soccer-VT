@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { ConvexError } from "convex/values";
-import { mostRecentPastGameDay, todayInTimezone, upcomingGameDay } from "./lib/dates";
+import { todayInTimezone, upcomingGameDay } from "./lib/dates";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";

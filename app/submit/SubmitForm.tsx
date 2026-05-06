@@ -35,17 +35,14 @@ export function SubmitForm() {
   const router = useRouter();
   const me = useQuery(api.public.me);
   const submit = useMutation(api.submissions.submitLocation);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<Draft>(() => {
+    if (typeof window === "undefined") return EMPTY_DRAFT;
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    try { return JSON.parse(raw) as Draft; } catch { return EMPTY_DRAFT; }
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Restore from sessionStorage if present.
-  useEffect(() => {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try { setDraft(JSON.parse(raw)); } catch {}
-    }
-  }, []);
 
   // Persist on every change.
   useEffect(() => {
@@ -95,7 +92,7 @@ export function SubmitForm() {
     <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-6 py-12">
       <h1 className="text-2xl font-semibold">Add a pickup game</h1>
       <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
-        You'll need a free account to submit. We'll prompt you when you save.
+        You&apos;ll need a free account to submit. We&apos;ll prompt you when you save.
       </p>
 
       <label className="flex flex-col gap-1 text-sm">
