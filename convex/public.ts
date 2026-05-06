@@ -4,6 +4,8 @@ import { ConvexError } from "convex/values";
 import { mostRecentPastGameDay, todayInTimezone, upcomingGameDay } from "./lib/dates";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAuth, requireOwnerOf } from "./lib/auth";
 
 type PublicLocation = {
   _id: Id<"locations">;
@@ -142,5 +144,87 @@ export const distinctTowns = query({
       .take(500);
     const towns = new Set(rows.map((r) => r.town));
     return Array.from(towns).sort();
+  },
+});
+
+export const me = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return { _id: user._id, email: user.email ?? "", role: user.role ?? "user" };
+  },
+});
+
+export const myLocations = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuth(ctx);
+    const rows = await ctx.db
+      .query("locations")
+      .withIndex("by_owner_and_status", (q) => q.eq("ownerId", user._id))
+      .take(50);
+    return rows.map((r) => ({
+      _id: r._id,
+      name: r.name,
+      town: r.town,
+      status: r.status,
+      rejectionReason: r.rejectionReason,
+      submittedAt: r.submittedAt,
+    }));
+  },
+});
+
+export const getMyLocation = query({
+  args: { id: v.id("locations") },
+  handler: async (ctx, { id }) => {
+    const { location } = await requireOwnerOf(ctx, id);
+    const now = new Date();
+    let thisWeek: { date: string; isOn: boolean; reason?: string } | null = null;
+    let lastSession: PublicLocation["lastSession"] = null;
+
+    if (location.status === "approved") {
+      const upcomingDate = upcomingGameDay(now, location.dayOfWeek, location.startTime);
+      const upcomingRow = await ctx.db
+        .query("gameDays")
+        .withIndex("by_location_and_date", (q) =>
+          q.eq("locationId", location._id).eq("date", upcomingDate),
+        )
+        .unique();
+      const isOn = upcomingRow?.isOn ?? true;
+      thisWeek = { date: upcomingDate, isOn, reason: isOn ? undefined : upcomingRow?.reason };
+
+      const recapRows = await ctx.db
+        .query("gameDays")
+        .withIndex("by_location", (q) => q.eq("locationId", location._id))
+        .order("desc")
+        .take(50);
+      const today = todayInTimezone(now);
+      const lastRow = recapRows.find(
+        (r) =>
+          r.date < today &&
+          (r.turnout !== undefined ||
+            r.weatherCondition !== undefined ||
+            r.weather !== undefined ||
+            r.recapNotes !== undefined),
+      );
+      if (lastRow) {
+        lastSession = {
+          date: lastRow.date,
+          turnout: lastRow.turnout,
+          weatherCondition: lastRow.weatherCondition,
+          weather: lastRow.weather,
+          recapNotes: lastRow.recapNotes,
+        };
+      }
+    }
+
+    return {
+      ...location,
+      thisWeek,
+      lastSession,
+    };
   },
 });
