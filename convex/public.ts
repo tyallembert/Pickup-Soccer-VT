@@ -173,6 +173,8 @@ export const myLocations = query({
       status: r.status,
       rejectionReason: r.rejectionReason,
       submittedAt: r.submittedAt,
+      dayOfWeek: r.dayOfWeek,
+      startTime: r.startTime,
     }));
   },
 });

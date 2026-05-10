@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SearchX } from "lucide-react";
 import { MotionShell } from "./MotionShell";
 import { formatDayPlural, formatStartTime } from "../_lib/format";
 
@@ -16,7 +17,19 @@ export type ListLocation = {
 
 export function LocationsList({ locations, keyHash }: { locations: ListLocation[]; keyHash?: string }) {
   if (!locations.length) {
-    return <p className="px-6 text-sm text-zinc-500">No matches. Try clearing filters.</p>;
+    return (
+      <div className="mx-6 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-white/60 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/60">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+          <SearchX className="h-5 w-5" />
+        </span>
+        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          No fields match your filters.
+        </p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Try removing a filter chip above, or browse all towns.
+        </p>
+      </div>
+    );
   }
   return (
     <MotionShell key={keyHash} variant="fade-up">

@@ -27,3 +27,137 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Soccer pitch — alternating mowed stripes with a subtle vignette */
+.pitch-bg {
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%),
+    repeating-linear-gradient(
+      90deg,
+      #2f8f3e 0 80px,
+      #2a7f37 80px 160px
+    );
+}
+
+/* Step transition primitives for the wizard */
+.step-enter {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.step-leave {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* ---- Leaflet themed (CARTO Voyager raster tiles, light look) ---- */
+
+.leaflet-container {
+  font-family: inherit;
+  background: #f6f5ee;
+}
+
+/* Custom emerald pin (DivIcon-based) */
+.vt-pin {
+  position: relative;
+  width: 28px;
+  height: 38px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+}
+.vt-pin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 35% 30%, #34d399 0%, #047857 75%, #065f46 100%);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 38'><path d='M14 0 C6.27 0 0 6.27 0 14 C0 25.5 14 38 14 38 C14 38 28 25.5 28 14 C28 6.27 21.73 0 14 0 Z'/></svg>") center/contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 38'><path d='M14 0 C6.27 0 0 6.27 0 14 C0 25.5 14 38 14 38 C14 38 28 25.5 28 14 C28 6.27 21.73 0 14 0 Z'/></svg>") center/contain no-repeat;
+}
+.vt-pin::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translateX(-50%);
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.3);
+}
+
+/* Hide the default Leaflet zoom control — we render our own toolbar above the map. */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Discreet attribution pill */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(0, 0, 0, 0.55) !important;
+  border-radius: 9999px !important;
+  padding: 2px 10px !important;
+  margin: 8px !important;
+  font-size: 10px !important;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.leaflet-control-attribution a {
+  color: #047857 !important;
+}
+
+/* Popup — soft white card */
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #18181b !important;
+  border-radius: 14px !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.leaflet-popup-tip {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.leaflet-popup-content a {
+  color: #047857 !important;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: rgba(0, 0, 0, 0.45) !important;
+  padding: 6px 8px 0 0 !important;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #18181b !important;
+}
+
+/* Cluster bubbles in emerald */
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+}
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background: rgba(16, 185, 129, 0.18) !important;
+}
+
+/* Tailwind-merge animations used by Radix UI primitives.
+   These mirror the keyframes Tailwind animate plugin would supply. */
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes zoom-in { from { transform: scale(0.95) } to { transform: scale(1) } }
+@keyframes zoom-out { from { transform: scale(1) } to { transform: scale(0.95) } }
+.data-\[state\=open\]\:animate-in[data-state="open"] {
+  animation: fade-in 120ms ease-out, zoom-in 120ms ease-out;
+}
+.data-\[state\=closed\]\:animate-out[data-state="closed"] {
+  animation: fade-out 100ms ease-in, zoom-out 100ms ease-in;
+}

@@ -4,10 +4,12 @@ const DAY_NAMES_PLURAL = ["Sundays","Mondays","Tuesdays","Wednesdays","Thursdays
 export function formatDayPlural(d: number) { return DAY_NAMES_PLURAL[d] ?? "Game days"; }
 export function formatDayLong(d: number) { return DAY_NAMES_LONG[d] ?? "the game"; }
 
-export function formatStartTime(t: string) {
+export function formatStartTime(t: string | null | undefined) {
+  if (!t || typeof t !== "string" || !t.includes(":")) return "";
   const [hStr, mStr] = t.split(":");
   let h = parseInt(hStr, 10);
   const m = parseInt(mStr, 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
   const ampm = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
   return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
