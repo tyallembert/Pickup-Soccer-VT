@@ -83,7 +83,9 @@ export function SubmitForm() {
   const [error, setError] = useState<string | null>(null);
 
   // Hydrate draft from sessionStorage after mount so SSR and first client
-  // render match (avoids hydration mismatch).
+  // render match (avoids hydration mismatch). One-time read from an external
+  // system on mount — the lint rule is a false positive here.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -95,6 +97,7 @@ export function SubmitForm() {
     }
     setHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Persist draft on every change. Skip until hydrated so we don't overwrite
   // the saved draft with EMPTY_DRAFT on first mount.
@@ -176,18 +179,20 @@ export function SubmitForm() {
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  // Form submit (Enter in inputs or any browser-initiated submit) never
+  // performs the actual submission. It only advances to the next step when
+  // we're not on the final step. The actual submission only fires from the
+  // Submit button's onClick handler below.
+  const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    // Enter in any input would otherwise submit the form. On any non-final
-    // step, treat the form submit as "Next" so the user isn't accidentally
-    // skipped to signup or to the actual submission.
     if (step !== STEPS.length - 1) {
       goNext();
-      return;
     }
+  };
 
+  const submitForReview = async () => {
+    setError(null);
     for (let s = 0; s < STEPS.length; s++) {
       const err = validateStep(s);
       if (err) {
@@ -335,7 +340,7 @@ export function SubmitForm() {
       ) : null}
 
       <form
-        onSubmit={onSubmit}
+        onSubmit={onFormSubmit}
         className="relative rounded-2xl border border-zinc-200 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/60 sm:p-6"
       >
         <FoulAlert error={error} onDismiss={() => setError(null)} />
@@ -367,7 +372,8 @@ export function SubmitForm() {
 
           {isLast ? (
             <button
-              type="submit"
+              type="button"
+              onClick={submitForReview}
               disabled={pending}
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/30 transition hover:scale-[1.02] hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
             >
