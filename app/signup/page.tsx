@@ -3,7 +3,7 @@ import { SignUpForm } from "./SignUpForm";
 
 export default function SignUpPage() {
   return (
-    <main className="relative mx-auto flex w-full flex-1 flex-col items-center justify-center px-6 py-16">
+    <div className="relative mx-auto flex min-h-dvh w-full flex-col items-center justify-center px-6 py-16">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -15,6 +15,6 @@ export default function SignUpPage() {
       <Suspense fallback={null}>
         <SignUpForm />
       </Suspense>
-    </main>
+    </div>
   );
 }

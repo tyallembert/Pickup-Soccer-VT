@@ -86,14 +86,6 @@ export const metadata: Metadata = {
     description: SITE_TAGLINE,
     images: ["/soccer-ball.png"],
   },
-  icons: {
-    icon: [
-      { url: "/soccer-ball.png", type: "image/png" },
-      { url: "/favicon.ico", sizes: "any" },
-    ],
-    shortcut: "/soccer-ball.png",
-    apple: [{ url: "/soccer-ball.png", type: "image/png" }],
-  },
   robots: {
     index: true,
     follow: true,
