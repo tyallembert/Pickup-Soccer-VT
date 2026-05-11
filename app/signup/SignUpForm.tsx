@@ -17,6 +17,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import Image from "next/image";
+import posthog from "posthog-js";
 
 const inputCls =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-emerald-900";
@@ -126,11 +127,14 @@ export function SignUpForm() {
             }
             try {
               const fd = new FormData(e.currentTarget);
+              const email = fd.get("email") as string;
               await signIn("password", {
-                email: fd.get("email") as string,
+                email,
                 password,
                 flow: "signUp",
               });
+              posthog.identify(email, { email });
+              posthog.capture("user_signed_up", { email });
               router.push(params.get("redirect") ?? "/account");
             } catch (e) {
               const message = e instanceof Error ? e.message : "";

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
+import posthog from "posthog-js";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import {
@@ -71,6 +72,18 @@ function relativeDay(date: string): string {
 export function LocationDetail({ id }: { id: Id<"locations"> }) {
   const data = useQuery(api.public.getLocation, { id });
   const root = useRef<HTMLElement>(null);
+  const tracked = useRef(false);
+
+  useEffect(() => {
+    if (!data || tracked.current) return;
+    tracked.current = true;
+    posthog.capture("location_viewed", {
+      location_id: id,
+      location_name: data.name,
+      town: data.town,
+      game_on: data.thisWeek.isOn,
+    });
+  }, [data, id]);
 
   useGSAP(
     () => {
@@ -221,6 +234,13 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
             href={mapsHref}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              posthog.capture("maps_link_clicked", {
+                location_id: id,
+                location_name: data.name,
+                town: data.town,
+              })
+            }
             className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70"
           >
             Open in Google Maps

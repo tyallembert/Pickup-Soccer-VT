@@ -15,6 +15,7 @@ import {
   Mail,
 } from "lucide-react";
 import Image from "next/image";
+import posthog from "posthog-js";
 
 const inputCls =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-emerald-900";
@@ -110,15 +111,19 @@ export function SignInForm() {
             setPending(true);
             setError(null);
             const fd = new FormData(e.currentTarget);
+            const email = fd.get("email") as string;
             try {
               await signIn("password", {
-                email: fd.get("email") as string,
+                email,
                 password: fd.get("password") as string,
                 flow: "signIn",
               });
+              posthog.identify(email, { email });
+              posthog.capture("user_signed_in", { email });
               router.push(params.get("redirect") ?? "/account");
             } catch {
               setError("Invalid email or password.");
+              posthog.capture("sign_in_failed", { email });
             } finally {
               setPending(false);
             }

@@ -23,6 +23,7 @@ import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import posthog from "posthog-js";
 
 type Tab = "details" | "thisWeek" | "lastSession";
 
@@ -252,7 +253,14 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
                 {data.rejectionReason || "No reason provided."}
               </p>
               <button
-                onClick={() => resubmit({ id: data._id })}
+                onClick={() => {
+                  resubmit({ id: data._id });
+                  posthog.capture("location_resubmitted", {
+                    location_id: data._id,
+                    location_name: data.name,
+                    town: data.town,
+                  });
+                }}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-rose-800"
               >
                 <RefreshCw className="h-3.5 w-3.5" />

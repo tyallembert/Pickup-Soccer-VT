@@ -11,6 +11,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { LocationPin } from "@/app/_components/LocationPin";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import posthog from "posthog-js";
 
 export function ReviewClient({ id }: { id: Id<"locations"> }) {
   const data = useQuery(api.admin.adminGetLocation, { id });
@@ -45,6 +46,12 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
     setBusy(true);
     try {
       await approve({ id });
+      posthog.capture("location_approved", {
+        location_id: id,
+        location_name: data.name,
+        town: data.town,
+        owner_email: data.ownerEmail,
+      });
       router.push("/admin/queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't approve.");
@@ -61,6 +68,12 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
     setBusy(true);
     try {
       await reject({ id, reason });
+      posthog.capture("location_rejected", {
+        location_id: id,
+        location_name: data.name,
+        town: data.town,
+        owner_email: data.ownerEmail,
+      });
       router.push("/admin/queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't reject.");

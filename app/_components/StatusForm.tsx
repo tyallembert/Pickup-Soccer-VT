@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CalendarClock, Check, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/app/_lib/cn";
 import { formatDateLong, formatDayLong } from "../_lib/format";
+import posthog from "posthog-js";
 
 const inputCls =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-emerald-900";
@@ -32,9 +33,15 @@ export function StatusForm({
         e.preventDefault();
         setPending(true);
         try {
-          await onSave({
+          const payload = {
             isOn: next.isOn,
             reason: next.isOn ? undefined : next.reason || undefined,
+          };
+          await onSave(payload);
+          posthog.capture("game_status_saved", {
+            is_on: next.isOn,
+            date,
+            has_reason: !next.isOn && !!next.reason,
           });
           setSavedAt(Date.now());
         } finally {

@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import posthog from "posthog-js";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
@@ -14,6 +23,7 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   FileText,
+  Lock,
   MapPin,
   Send,
   Sparkles,
@@ -70,21 +80,90 @@ const STEPS = [
   { key: "details", label: "Details", Icon: FileText },
 ] as const;
 
-export function SubmitForm() {
+const LAST_STEP = STEPS.length - 1;
+
+type FormStatus = "editing" | "submitting" | "redirecting";
+type AuthStatus = "unknown" | "anonymous" | "authenticated";
+
+type SubmitFormContextValue = {
+  draft: Draft;
+  update: (patch: Partial<Draft>) => void;
+  step: number;
+  direction: 1 | -1;
+  goNext: () => void;
+  goPrev: () => void;
+  goTo: (target: number) => void;
+  status: FormStatus;
+  error: string | null;
+  dismissError: () => void;
+  attemptSubmit: () => Promise<void>;
+  authStatus: AuthStatus;
+  onAddressBlur: () => Promise<void>;
+  stepsComplete: readonly boolean[];
+  allComplete: boolean;
+};
+
+const SubmitFormContext = createContext<SubmitFormContextValue | null>(null);
+
+function useSubmitForm(): SubmitFormContextValue {
+  const ctx = useContext(SubmitFormContext);
+  if (!ctx) {
+    throw new Error("useSubmitForm must be used within SubmitFormProvider");
+  }
+  return ctx;
+}
+
+function validateStep(s: number, d: Draft): string | null {
+  if (s === 0) {
+    if (!d.name.trim()) return "Give the field a name.";
+    if (!d.town.trim()) return "Pick a town in Vermont.";
+  }
+  if (s === 1) {
+    if (!d.address.trim()) return "Add an address so we can place a pin.";
+    if (d.lat === null || d.lng === null)
+      return "Drop the pin on the map before continuing.";
+  }
+  if (s === 2) {
+    if (!d.startTime) return "What time does the game kick off?";
+  }
+  return null;
+}
+
+function SubmitFormProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const me = useQuery(api.public.me);
-  const submit = useMutation(api.submissions.submitLocation);
+  const submitMutation = useMutation(api.submissions.submitLocation);
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState<FormStatus>("editing");
   const [error, setError] = useState<string | null>(null);
+  // Track which steps the user has actually entered. A step's data may pass
+  // validation by default (e.g. the time field defaults to 18:00), so we
+  // require an explicit visit before treating it as "complete" — otherwise the
+  // stepper would falsely show progress for steps the user never opened.
+  const [visited, setVisited] = useState<boolean[]>(() => {
+    const v = new Array(STEPS.length).fill(false) as boolean[];
+    v[0] = true;
+    return v;
+  });
 
-  // Hydrate draft from sessionStorage after mount so SSR and first client
-  // render match (avoids hydration mismatch). One-time read from an external
-  // system on mount — the lint rule is a false positive here.
+  // Refs mirror state so attemptSubmit/goNext can read the freshest values
+  // without depending on closures. The step guard inside attemptSubmit is the
+  // last line of defense against an early submission, so it must never read a
+  // stale step. We sync inside an effect (after commit) — user-initiated
+  // event handlers fire between commits, so they always see the latest values.
+  const stepRef = useRef(step);
+  const statusRef = useRef(status);
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    stepRef.current = step;
+    statusRef.current = status;
+    draftRef.current = draft;
+  });
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -99,102 +178,90 @@ export function SubmitForm() {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Persist draft on every change. Skip until hydrated so we don't overwrite
-  // the saved draft with EMPTY_DRAFT on first mount.
   useEffect(() => {
     if (!hydrated) return;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
   }, [draft, hydrated]);
 
-  const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+  // Mark each step as visited the first time it becomes active.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setVisited((prev) => {
+      if (prev[step]) return prev;
+      const next = prev.slice();
+      next[step] = true;
+      return next;
+    });
+  }, [step]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Slide the active step in.
-  const stepRef = useRef<HTMLDivElement>(null);
-  useGSAP(
-    () => {
-      if (!stepRef.current) return;
-      gsap.fromTo(
-        stepRef.current,
-        { x: direction * 60, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.45, ease: "power3.out" },
-      );
-    },
-    { dependencies: [step] },
-  );
+  // On every step change, drop focus from whatever the user just clicked.
+  // Prevents a focused Next button from "carrying over" into the Submit
+  // button position and being activated by a stray Enter / repeat keypress.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const el = document.activeElement;
+    if (el instanceof HTMLElement) el.blur();
+  }, [step]);
 
-  // Animate progress bar fill.
-  const fillRef = useRef<HTMLDivElement>(null);
-  useGSAP(
-    () => {
-      if (!fillRef.current) return;
-      gsap.to(fillRef.current, {
-        width: `${((step + 1) / STEPS.length) * 100}%`,
-        duration: 0.5,
-        ease: "power3.out",
-      });
-    },
-    { dependencies: [step] },
-  );
+  const update = useCallback((patch: Partial<Draft>) => {
+    setDraft((d) => ({ ...d, ...patch }));
+  }, []);
 
-  const onAddressBlur = async () => {
-    if (!draft.address.trim()) return;
-    const geo = await geocodeAddress(draft.address);
-    if (geo) update({ lat: geo.lat, lng: geo.lng });
-  };
+  const dismissError = useCallback(() => setError(null), []);
 
-  const validateStep = (s: number): string | null => {
-    if (s === 0) {
-      if (!draft.name.trim()) return "Give the field a name.";
-      if (!draft.town.trim()) return "Pick a town in Vermont.";
-    }
-    if (s === 1) {
-      if (!draft.address.trim()) return "Add an address so we can place a pin.";
-      if (draft.lat === null || draft.lng === null)
-        return "Drop the pin on the map before continuing.";
-    }
-    if (s === 2) {
-      if (!draft.startTime) return "What time does the game kick off?";
-    }
-    return null;
-  };
-
-  const goNext = () => {
+  const goNext = useCallback(() => {
     setError(null);
-    const err = validateStep(step);
+    const current = stepRef.current;
+    const err = validateStep(current, draftRef.current);
     if (err) {
       setError(err);
       return;
     }
-    if (step < STEPS.length - 1) {
+    if (current < LAST_STEP) {
       setDirection(1);
-      setStep(step + 1);
+      setStep(current + 1);
     }
-  };
+  }, []);
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     setError(null);
-    if (step > 0) {
+    const current = stepRef.current;
+    if (current > 0) {
       setDirection(-1);
-      setStep(step - 1);
+      setStep(current - 1);
     }
-  };
+  }, []);
 
-  // Form submit (Enter in inputs or any browser-initiated submit) never
-  // performs the actual submission. It only advances to the next step when
-  // we're not on the final step. The actual submission only fires from the
-  // Submit button's onClick handler below.
-  const onFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const goTo = useCallback((target: number) => {
+    // Free navigation — any step at any time. The Submit button stays locked
+    // until every step is complete, so skipping ahead is harmless.
     setError(null);
-    if (step !== STEPS.length - 1) {
-      goNext();
-    }
-  };
+    const current = stepRef.current;
+    if (target === current || target < 0 || target >= STEPS.length) return;
+    setDirection(target < current ? -1 : 1);
+    setStep(target);
+  }, []);
 
-  const submitForReview = async () => {
+  const onAddressBlur = useCallback(async () => {
+    const address = draftRef.current.address.trim();
+    if (!address) return;
+    const geo = await geocodeAddress(address);
+    if (geo) update({ lat: geo.lat, lng: geo.lng });
+  }, [update]);
+
+  const attemptSubmit = useCallback(async () => {
+    // Hard gate #1: the mutation can ONLY fire from the final step. Reading
+    // the ref (not the closed-over state) ensures this check is always against
+    // the freshest step, regardless of how this function was invoked.
+    if (stepRef.current !== LAST_STEP) return;
+    // Hard gate #2: never re-enter while a submission is in flight.
+    if (statusRef.current !== "editing") return;
+
     setError(null);
+
     for (let s = 0; s < STEPS.length; s++) {
-      const err = validateStep(s);
+      const err = validateStep(s, draftRef.current);
       if (err) {
         setError(err);
         setDirection(1);
@@ -202,134 +269,123 @@ export function SubmitForm() {
         return;
       }
     }
+
     if (me === null) {
       router.push(`/signup?redirect=${encodeURIComponent("/submit")}`);
       return;
     }
-    setPending(true);
+
+    setStatus("submitting");
     try {
-      const id = await submit({
-        name: draft.name,
-        town: draft.town,
-        address: draft.address,
-        lat: draft.lat!,
-        lng: draft.lng!,
-        dayOfWeek: draft.dayOfWeek,
-        startTime: draft.startTime,
-        details: draft.details,
+      const d = draftRef.current;
+      const id = await submitMutation({
+        name: d.name,
+        town: d.town,
+        address: d.address,
+        lat: d.lat!,
+        lng: d.lng!,
+        dayOfWeek: d.dayOfWeek,
+        startTime: d.startTime,
+        details: d.details,
+      });
+      posthog.capture("location_submitted", {
+        location_id: id,
+        location_name: d.name,
+        town: d.town,
+        day_of_week: d.dayOfWeek,
       });
       sessionStorage.removeItem(STORAGE_KEY);
+      setStatus("redirecting");
       router.push(`/account/locations/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't submit. Try again.");
-      setPending(false);
+      setStatus("editing");
     }
-  };
+  }, [me, router, submitMutation]);
 
-  const isLast = step === STEPS.length - 1;
+  const authStatus: AuthStatus =
+    me === undefined ? "unknown" : me === null ? "anonymous" : "authenticated";
+
+  const stepsComplete = useMemo<readonly boolean[]>(
+    () =>
+      STEPS.map((_, i) => visited[i] && validateStep(i, draft) === null),
+    [draft, visited],
+  );
+  const allComplete = useMemo(
+    () => stepsComplete.every(Boolean),
+    [stepsComplete],
+  );
+
+  const value = useMemo<SubmitFormContextValue>(
+    () => ({
+      draft,
+      update,
+      step,
+      direction,
+      goNext,
+      goPrev,
+      goTo,
+      status,
+      error,
+      dismissError,
+      attemptSubmit,
+      authStatus,
+      onAddressBlur,
+      stepsComplete,
+      allComplete,
+    }),
+    [
+      draft,
+      update,
+      step,
+      direction,
+      goNext,
+      goPrev,
+      goTo,
+      status,
+      error,
+      dismissError,
+      attemptSubmit,
+      authStatus,
+      onAddressBlur,
+      stepsComplete,
+      allComplete,
+    ],
+  );
+
+  return (
+    <SubmitFormContext.Provider value={value}>
+      {children}
+    </SubmitFormContext.Provider>
+  );
+}
+
+export function SubmitForm() {
+  return (
+    <SubmitFormProvider>
+      <SubmitFormView />
+    </SubmitFormProvider>
+  );
+}
+
+function SubmitFormView() {
+  const { error, dismissError, authStatus, step } = useSubmitForm();
+
+  // The <form> element's onSubmit is a hard no-op. Submission can ONLY be
+  // initiated by an explicit click on the Submit button (see FormFooter),
+  // which calls attemptSubmit — which itself re-checks the step guard. This
+  // makes it impossible for browser autofill, password managers, an Enter
+  // keypress, or any other implicit form-submit path to fire the mutation.
+  const onFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
 
   return (
     <div className="relative mx-auto w-full max-w-2xl px-6 pt-24 pb-12">
-      {/* Header card with pitch corner-arc decoration */}
-      <header className="relative mb-6 overflow-hidden rounded-2xl border border-emerald-700/30 bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 p-6 text-white shadow-[0_18px_50px_-20px_rgba(16,185,129,0.55)]">
-        {/* Pitch lines decoration */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full border border-white/15"
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 -right-4 h-36 w-36 rounded-full border border-white/10"
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
-        />
-        <div className="relative flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-50/90">
-              New pickup game
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              Add a field.
-            </h1>
-            <p className="mt-1.5 max-w-md text-sm text-emerald-50/90">
-              Tell us where and when. We&apos;ll review and post it on the map
-              for the rest of the state.
-            </p>
-          </div>
-          <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur sm:inline-flex">
-            <Sparkles className="h-5 w-5" />
-          </span>
-        </div>
-      </header>
+      <Header />
+      <Stepper />
 
-      {/* Stepper rail with connecting progress line */}
-      <div className="relative mb-3 px-1">
-        {/* Track + animated fill behind the dots */}
-        <div className="absolute inset-x-5 top-[18px] h-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-        <div
-          ref={fillRef}
-          className="absolute left-5 top-[18px] h-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300"
-          style={{ width: `calc(${(step / Math.max(1, STEPS.length - 1)) * 100}% * 0.96)` }}
-        />
-        <ol className="relative flex items-start justify-between gap-2">
-          {STEPS.map((s, i) => {
-            const active = i === step;
-            const done = i < step;
-            const Icon = s.Icon;
-            return (
-              <li
-                key={s.key}
-                className="flex flex-col items-center gap-1.5"
-                aria-current={active ? "step" : undefined}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (i < step) {
-                      setDirection(-1);
-                      setStep(i);
-                    }
-                  }}
-                  disabled={i > step}
-                  className={cn(
-                    "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition",
-                    active &&
-                      "scale-110 border-emerald-600 bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.55)]",
-                    done && !active && "border-emerald-600 bg-emerald-600 text-white",
-                    !active &&
-                      !done &&
-                      "border-zinc-200 bg-white text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950",
-                    i <= step ? "cursor-pointer" : "cursor-default",
-                  )}
-                  aria-label={`Step ${i + 1}: ${s.label}`}
-                >
-                  {done ? (
-                    <Check className="h-4 w-4" strokeWidth={3} />
-                  ) : (
-                    <Icon className="h-4 w-4" />
-                  )}
-                </button>
-                <span
-                  className={cn(
-                    "text-[10px] font-bold uppercase tracking-[0.2em]",
-                    active
-                      ? "text-emerald-700 dark:text-emerald-300"
-                      : done
-                        ? "text-zinc-700 dark:text-zinc-300"
-                        : "text-zinc-400 dark:text-zinc-600",
-                  )}
-                >
-                  {s.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-
-      {me === null ? (
+      {authStatus === "anonymous" ? (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-xs font-medium text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
           <span>
@@ -341,71 +397,302 @@ export function SubmitForm() {
 
       <form
         onSubmit={onFormSubmit}
+        noValidate
         className="relative rounded-2xl border border-zinc-200 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/60 sm:p-6"
       >
-        <FoulAlert error={error} onDismiss={() => setError(null)} />
-
-        <div ref={stepRef} key={step} className="min-h-[320px]">
-          {step === 0 ? <BasicsStep draft={draft} update={update} /> : null}
-          {step === 1 ? (
-            <WhereStep draft={draft} update={update} onAddressBlur={onAddressBlur} />
-          ) : null}
-          {step === 2 ? <WhenStep draft={draft} update={update} /> : null}
-          {step === 3 ? <DetailsStep draft={draft} update={update} /> : null}
-        </div>
-
-        <div className="mt-8 flex items-center justify-between gap-3 border-t border-dashed border-zinc-200 pt-5 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={step === 0}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-5 py-2.5 text-sm font-semibold transition",
-              step === 0
-                ? "cursor-not-allowed border-zinc-200 text-zinc-300 dark:border-zinc-800 dark:text-zinc-700"
-                : "border-zinc-300 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900",
-            )}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-
-          {isLast ? (
-            <button
-              type="button"
-              onClick={submitForReview}
-              disabled={pending}
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/30 transition hover:scale-[1.02] hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
-            >
-              {pending ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  Submitting…
-                </>
-              ) : me === null ? (
-                <>
-                  Continue to sign up
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Submit for review
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={goNext}
-              className="group inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/30 transition hover:bg-emerald-500 hover:shadow-lg active:scale-[0.99]"
-            >
-              Next
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-            </button>
-          )}
-        </div>
+        <FoulAlert error={error} onDismiss={dismissError} />
+        <StepBody key={step} />
+        <FormFooter />
       </form>
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="relative mb-6 overflow-hidden rounded-2xl border border-emerald-700/30 bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 p-6 text-white shadow-[0_18px_50px_-20px_rgba(16,185,129,0.55)]">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full border border-white/15"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-16 -right-4 h-36 w-36 rounded-full border border-white/10"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+      />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-50/90">
+            New pickup game
+          </p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+            Add a field.
+          </h1>
+          <p className="mt-1.5 max-w-md text-sm text-emerald-50/90">
+            Tell us where and when. We&apos;ll review and post it on the map
+            for the rest of the state.
+          </p>
+        </div>
+        <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur sm:inline-flex">
+          <Sparkles className="h-5 w-5" />
+        </span>
+      </div>
+    </header>
+  );
+}
+
+// --- Stepper geometry ---------------------------------------------------
+// Bubble height/width in px. The connector rail's vertical position is exactly
+// (BUBBLE_PX / 2) - (RAIL_PX / 2) so it threads through the center of every
+// bubble at any zoom level.
+const BUBBLE_PX = 40;
+const RAIL_PX = 2;
+const RAIL_TOP_PX = BUBBLE_PX / 2 - RAIL_PX / 2;
+// Each step is one column of a CSS grid (1fr each). Bubble centers therefore
+// sit at (i + 0.5) * (100/N)% across the container, which makes the rail
+// endpoints fall on (1 / (2N)) * 100% from each side. No magic px offsets.
+const COL_PCT = 100 / STEPS.length;
+const HALF_COL_PCT = COL_PCT / 2;
+
+function Stepper() {
+  const { step, goTo, stepsComplete } = useSubmitForm();
+  const fillRef = useRef<HTMLDivElement>(null);
+
+  // The fill bar tracks the user's current step — independent of completion
+  // status, which is communicated per-bubble. Smooth easing makes free
+  // navigation (clicking any bubble) feel like a single fluid motion.
+  useGSAP(
+    () => {
+      if (!fillRef.current) return;
+      gsap.to(fillRef.current, {
+        width: `${step * COL_PCT}%`,
+        duration: 0.6,
+        ease: "power3.out",
+      });
+    },
+    { dependencies: [step] },
+  );
+
+  return (
+    <div className="relative mb-5">
+      {/* Rail (track) — endpoints align to first and last bubble centers. */}
+      <div
+        aria-hidden
+        className="absolute rounded-full bg-zinc-200 dark:bg-zinc-800"
+        style={{
+          top: `${RAIL_TOP_PX}px`,
+          height: `${RAIL_PX}px`,
+          left: `${HALF_COL_PCT}%`,
+          right: `${HALF_COL_PCT}%`,
+        }}
+      />
+      {/* Rail fill — animates to current step's bubble center. */}
+      <div
+        ref={fillRef}
+        aria-hidden
+        className="absolute rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.45)]"
+        style={{
+          top: `${RAIL_TOP_PX}px`,
+          height: `${RAIL_PX}px`,
+          left: `${HALF_COL_PCT}%`,
+          width: `${step * COL_PCT}%`,
+        }}
+      />
+
+      <ol
+        className="relative grid"
+        style={{ gridTemplateColumns: `repeat(${STEPS.length}, 1fr)` }}
+      >
+        {STEPS.map((s, i) => {
+          const active = i === step;
+          const complete = stepsComplete[i];
+          const Icon = s.Icon;
+
+          return (
+            <li
+              key={s.key}
+              className="flex flex-col items-center gap-2"
+              aria-current={active ? "step" : undefined}
+            >
+              <button
+                type="button"
+                onClick={() => goTo(i)}
+                aria-label={`Go to ${s.label}${complete ? " (complete)" : ""}`}
+                className={cn(
+                  "group relative flex shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-2 ring-inset transition-[transform,box-shadow,background-color,color,ring-color] duration-300 ease-out",
+                  active
+                    ? "scale-110 bg-emerald-600 text-white ring-emerald-600 shadow-[0_10px_28px_-8px_rgba(16,185,129,0.6)]"
+                    : complete
+                      ? "bg-emerald-600 text-white ring-emerald-600 hover:scale-[1.06] hover:shadow-[0_8px_20px_-8px_rgba(16,185,129,0.55)]"
+                      : "bg-white text-zinc-400 ring-zinc-200 hover:scale-[1.06] hover:text-emerald-600 hover:ring-emerald-400 dark:bg-zinc-950 dark:text-zinc-500 dark:ring-zinc-800 dark:hover:ring-emerald-700",
+                )}
+                style={{ height: `${BUBBLE_PX}px`, width: `${BUBBLE_PX}px` }}
+              >
+                {/* Soft halo on the active bubble */}
+                {active ? (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-1.5 rounded-full bg-emerald-400/25 blur-md"
+                  />
+                ) : null}
+                {/* Completion sub-ring — a delicate outer outline that fades
+                    in once the step has been visited and validates. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute -inset-1 rounded-full border-2 border-emerald-500/45 transition-opacity duration-300 ease-out dark:border-emerald-400/50",
+                    complete ? "opacity-100" : "opacity-0",
+                  )}
+                />
+                <span className="relative flex items-center justify-center">
+                  {complete && !active ? (
+                    <Check className="h-4 w-4" strokeWidth={3} />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
+                </span>
+              </button>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300",
+                  active
+                    ? "text-emerald-700 dark:text-emerald-300"
+                    : complete
+                      ? "text-zinc-700 dark:text-zinc-300"
+                      : "text-zinc-400 dark:text-zinc-600",
+                )}
+              >
+                {s.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function StepBody() {
+  const { step, direction } = useSubmitForm();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (!containerRef.current) return;
+      gsap.fromTo(
+        containerRef.current,
+        { x: direction * 60, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.45, ease: "power3.out" },
+      );
+    },
+    { dependencies: [step] },
+  );
+
+  return (
+    <div ref={containerRef} className="min-h-[320px]">
+      {step === 0 ? <BasicsStep /> : null}
+      {step === 1 ? <WhereStep /> : null}
+      {step === 2 ? <WhenStep /> : null}
+      {step === 3 ? <DetailsStep /> : null}
+    </div>
+  );
+}
+
+function FormFooter() {
+  const {
+    step,
+    goPrev,
+    goNext,
+    attemptSubmit,
+    status,
+    authStatus,
+    allComplete,
+    stepsComplete,
+  } = useSubmitForm();
+  const isLast = step === LAST_STEP;
+  const pending = status !== "editing";
+  const locked = !allComplete;
+  const completeCount = stepsComplete.filter(Boolean).length;
+
+  return (
+    <div className="mt-8 flex items-center justify-between gap-3 border-t border-dashed border-zinc-200 pt-5 dark:border-zinc-800">
+      <button
+        type="button"
+        onClick={goPrev}
+        disabled={step === 0}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border px-5 py-2.5 text-sm font-semibold transition",
+          step === 0
+            ? "cursor-not-allowed border-zinc-200 text-zinc-300 dark:border-zinc-800 dark:text-zinc-700"
+            : "border-zinc-300 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900",
+        )}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </button>
+
+      {/* Distinct keys force React to fully unmount/remount the primary
+          action button when transitioning between Next and Submit. Without
+          this, React would reuse the same <button> DOM element across renders
+          and a focused Next could "become" a focused Submit on the next
+          render — letting a stray Enter activate it. */}
+      {isLast ? (
+        <button
+          key="primary-submit"
+          type="button"
+          onClick={attemptSubmit}
+          disabled={pending || locked}
+          aria-disabled={pending || locked}
+          title={
+            locked
+              ? `Complete every step to unlock submit (${completeCount}/${STEPS.length})`
+              : undefined
+          }
+          className={cn(
+            "group inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold transition active:scale-[0.99]",
+            pending || !locked
+              ? "bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-600/30 hover:scale-[1.02] hover:shadow-lg disabled:opacity-60"
+              : "cursor-not-allowed bg-zinc-200 text-zinc-500 ring-1 ring-inset ring-zinc-300 dark:bg-zinc-900 dark:text-zinc-500 dark:ring-zinc-800",
+          )}
+        >
+          {pending ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Submitting…
+            </>
+          ) : locked ? (
+            <>
+              <Lock className="h-4 w-4" />
+              <span>
+                Locked · {completeCount}/{STEPS.length}
+              </span>
+            </>
+          ) : authStatus === "anonymous" ? (
+            <>
+              Continue to sign up
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" />
+              Submit for review
+            </>
+          )}
+        </button>
+      ) : (
+        <button
+          key="primary-next"
+          type="button"
+          onClick={goNext}
+          className="group inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/30 transition hover:bg-emerald-500 hover:shadow-lg active:scale-[0.99]"
+        >
+          Next
+          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -495,18 +782,12 @@ function Field({
 const inputCls =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900";
 
-function BasicsStep({
-  draft,
-  update,
-}: {
-  draft: Draft;
-  update: (p: Partial<Draft>) => void;
-}) {
+function BasicsStep() {
+  const { draft, update } = useSubmitForm();
   return (
     <div className="flex flex-col gap-4">
       <Field label="Field or park name" hint="What do players call this place?">
         <input
-          required
           value={draft.name}
           onChange={(e) => update({ name: e.target.value })}
           placeholder="e.g. Waterbury Rec Field"
@@ -596,15 +877,8 @@ function TownCombobox({
   );
 }
 
-function WhereStep({
-  draft,
-  update,
-  onAddressBlur,
-}: {
-  draft: Draft;
-  update: (p: Partial<Draft>) => void;
-  onAddressBlur: () => void;
-}) {
+function WhereStep() {
+  const { draft, update, onAddressBlur } = useSubmitForm();
   const pinned = draft.lat !== null && draft.lng !== null;
   return (
     <div className="flex flex-col gap-4">
@@ -613,7 +887,6 @@ function WhereStep({
         hint="We'll drop a pin when you tab out. You can also tap the map directly."
       >
         <input
-          required
           value={draft.address}
           onChange={(e) => update({ address: e.target.value })}
           onBlur={onAddressBlur}
@@ -655,13 +928,8 @@ function WhereStep({
   );
 }
 
-function WhenStep({
-  draft,
-  update,
-}: {
-  draft: Draft;
-  update: (p: Partial<Draft>) => void;
-}) {
+function WhenStep() {
+  const { draft, update } = useSubmitForm();
   const days = [
     { short: "S", full: "Sun" },
     { short: "M", full: "Mon" },
@@ -710,7 +978,6 @@ function WhenStep({
       <Field label="Start time" hint="24-hour format auto-converts in the directory.">
         <input
           type="time"
-          required
           value={draft.startTime}
           onChange={(e) => update({ startTime: e.target.value })}
           className={inputCls}
@@ -720,13 +987,8 @@ function WhenStep({
   );
 }
 
-function DetailsStep({
-  draft,
-  update,
-}: {
-  draft: Draft;
-  update: (p: Partial<Draft>) => void;
-}) {
+function DetailsStep() {
+  const { draft, update } = useSubmitForm();
   return (
     <div className="flex flex-col gap-4">
       <Field

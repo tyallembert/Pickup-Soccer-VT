@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/app/_lib/cn";
 import { formatDateLong } from "../_lib/format";
+import posthog from "posthog-js";
 
 const CONDITIONS = [
   { value: "sunny", label: "Sunny", icon: Sun },
@@ -63,12 +64,20 @@ export function RecapForm({
         e.preventDefault();
         setPending(true);
         try {
+          const turnout = v.turnout === "" ? null : Number(v.turnout);
+          const weatherCondition =
+            v.weatherCondition === "" ? null : v.weatherCondition;
           await onSave({
-            turnout: v.turnout === "" ? null : Number(v.turnout),
-            weatherCondition:
-              v.weatherCondition === "" ? null : v.weatherCondition,
+            turnout,
+            weatherCondition,
             weather: v.weather || null,
             recapNotes: v.recapNotes || null,
+          });
+          posthog.capture("session_recap_saved", {
+            date,
+            turnout,
+            weather_condition: weatherCondition,
+            has_notes: !!v.recapNotes,
           });
           setSavedAt(Date.now());
         } finally {

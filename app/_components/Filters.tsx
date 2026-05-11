@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/app/_lib/cn";
+import posthog from "posthog-js";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Command,
@@ -101,6 +102,11 @@ export function Filters({
             onChange={(e) =>
               onChange({ search: e.target.value, town, dayOfWeek })
             }
+            onBlur={(e) => {
+              if (e.target.value) {
+                posthog.capture("directory_filtered", { filter_type: "search" });
+              }
+            }}
             placeholder="Search by field name, town, or details…"
             aria-label="Search fields"
             className={cn(
@@ -131,7 +137,10 @@ export function Filters({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <DayPills
             value={dayOfWeek}
-            onChange={(v) => onChange({ search, town, dayOfWeek: v })}
+            onChange={(v) => {
+              if (v) posthog.capture("directory_filtered", { filter_type: "day", day_of_week: v });
+              onChange({ search, town, dayOfWeek: v });
+            }}
           />
 
           <div className="flex items-center gap-2">
@@ -185,6 +194,7 @@ export function Filters({
                           key={t}
                           value={t}
                           onSelect={() => {
+                            posthog.capture("directory_filtered", { filter_type: "town", town: t });
                             onChange({ search, town: t, dayOfWeek });
                             setTownOpen(false);
                           }}
