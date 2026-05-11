@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
   convexAuthNextjsToken,
@@ -6,6 +7,12 @@ import {
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { AccountClient } from "./AccountClient";
+
+export const metadata: Metadata = {
+  title: "Account",
+  description: "Manage your Vermont Pickup Soccer account.",
+  robots: { index: false, follow: false, nocache: true },
+};
 
 export default async function AccountPage() {
   if (!(await isAuthenticatedNextjs())) redirect("/signin?redirect=%2Faccount");

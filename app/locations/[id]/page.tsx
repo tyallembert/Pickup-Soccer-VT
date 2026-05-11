@@ -51,13 +51,11 @@ export async function generateMetadata({
       description,
       url: path,
       type: "website",
-      images: [{ url: "/soccer-ball.png", width: 540, height: 540 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: ["/soccer-ball.png"],
     },
   };
 }
@@ -69,6 +67,31 @@ export default async function LocationPage({
 }) {
   const { id } = await params;
   const loc = await loadLocation(id);
+
+  const breadcrumbLd = loc
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Vermont Pickup Soccer",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: `${loc.town}, Vermont`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: loc.name,
+          },
+        ],
+      }
+    : null;
 
   const jsonLd = loc
     ? {
@@ -140,6 +163,12 @@ export default async function LocationPage({
 
   return (
     <>
+      {breadcrumbLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        />
+      ) : null}
       {jsonLd ? (
         <script
           type="application/ld+json"

@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SignUpForm } from "./SignUpForm";
+
+export const metadata: Metadata = {
+  title: "Create an Account",
+  description:
+    "Create a free account to submit and manage pickup soccer fields on the Vermont Pickup Soccer directory.",
+  alternates: { canonical: "/signup" },
+  robots: { index: false, follow: true },
+};
 
 export default function SignUpPage() {
   return (

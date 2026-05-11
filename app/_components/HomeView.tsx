@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, usePreloadedQuery, type Preloaded } from "convex/react";
 import { Map as MapIcon, Rows3 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/app/_lib/cn";
@@ -13,22 +13,34 @@ import { SoccerField } from "./SoccerField";
 
 type ViewMode = "map" | "list";
 
-export function HomeView() {
+export function HomeView({
+  preloadedLocations,
+}: {
+  preloadedLocations: Preloaded<typeof api.public.listLocations>;
+}) {
   const [filters, setFilters] = useState({ search: "", town: "", dayOfWeek: "" });
   const [viewMode, setViewMode] = useState<ViewMode>("map");
 
-  const locations = useQuery(api.public.listLocations, {
-    search: filters.search || undefined,
-    town: filters.town || undefined,
-    dayOfWeek: filters.dayOfWeek === "" ? undefined : parseInt(filters.dayOfWeek, 10),
-  });
+  const baseLocations = usePreloadedQuery(preloadedLocations);
+  const isFiltered = !!(filters.search || filters.town || filters.dayOfWeek);
 
-  // Unfiltered totals — used only for the "X of Y fields" counter.
-  // Cheap because the public list is small (statewide directory).
-  const totals = useQuery(api.public.listLocations, {});
+  const filteredLocations = useQuery(
+    api.public.listLocations,
+    isFiltered
+      ? {
+          search: filters.search || undefined,
+          town: filters.town || undefined,
+          dayOfWeek:
+            filters.dayOfWeek === ""
+              ? undefined
+              : parseInt(filters.dayOfWeek, 10),
+        }
+      : "skip",
+  );
 
+  const locations = isFiltered ? filteredLocations : baseLocations;
   const resultCount = locations?.length;
-  const totalCount = totals?.length;
+  const totalCount = baseLocations.length;
 
   return (
     <>

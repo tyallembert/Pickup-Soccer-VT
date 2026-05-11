@@ -30,18 +30,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${SITE_URL}/signin`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
-    {
-      url: `${SITE_URL}/signup`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
   ];
 
   const locationEntries: MetadataRoute.Sitemap = locations.map((l) => ({

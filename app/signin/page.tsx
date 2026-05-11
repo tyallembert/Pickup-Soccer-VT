@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SignInForm } from "./SignInForm";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description:
+    "Sign in to manage the pickup soccer fields you've submitted to the Vermont Pickup Soccer directory.",
+  alternates: { canonical: "/signin" },
+  robots: { index: false, follow: true },
+};
 
 export default function SignInPage() {
   return (
