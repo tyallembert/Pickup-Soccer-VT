@@ -1,12 +1,9 @@
 // All 252 incorporated municipalities in Vermont (cities, towns, gores) plus
 // commonly-recognized village names like "Essex Junction" and "Morrisville"
-// (the village within Morristown). Ordered by 2020 census population from
-// largest to smallest, with the long tail of small towns appended alphabetically
-// since population data for places under ~1,500 is similar enough that
-// alphabetical browsing is more useful.
+// (the village within Morristown). Sorted alphabetically with locale-aware
+// comparison so apostrophes and punctuation are handled the way readers expect.
 
-export const VERMONT_TOWNS: readonly string[] = [
-  // Top tier — Vermont's 60 largest municipalities, descending by population
+const VERMONT_TOWN_NAMES: readonly string[] = [
   "Burlington",
   "Essex",
   "South Burlington",
@@ -67,8 +64,6 @@ export const VERMONT_TOWNS: readonly string[] = [
   "Shaftsbury",
   "Dorset",
   "Wallingford",
-
-  // Long tail — alphabetical
   "Addison",
   "Albany",
   "Alburgh",
@@ -256,4 +251,8 @@ export const VERMONT_TOWNS: readonly string[] = [
   "Woodford",
   "Woodstock",
   "Worcester",
-] as const;
+];
+
+export const VERMONT_TOWNS: readonly string[] = [...VERMONT_TOWN_NAMES].sort(
+  (a, b) => a.localeCompare(b)
+);
