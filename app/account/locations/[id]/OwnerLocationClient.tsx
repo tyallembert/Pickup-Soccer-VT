@@ -14,6 +14,8 @@ import {
   MapPin,
   RefreshCw,
   Settings,
+  ShieldCheck,
+  Users,
   XCircle,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -21,11 +23,12 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { SettingsForm } from "@/app/_components/SettingsForm";
 import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
+import { MaintainersPanel } from "@/app/_components/MaintainersPanel";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
 import posthog from "posthog-js";
 
-type Tab = "details" | "thisWeek" | "lastSession";
+type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -88,6 +91,8 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
   const [tab, setTab] = useState<Tab>("details");
 
   const status = (data?.status ?? "pending") as Status;
+  const isPrimary = data?.viewerIsPrimaryOwner ?? false;
+  const viewerRole = data?.viewerRole;
   const tabItems = useMemo<SegmentedTab<Tab>[]>(() => {
     const items: SegmentedTab<Tab>[] = [
       { value: "details", label: "Field details", icon: <Settings className="h-3.5 w-3.5" /> },
@@ -103,9 +108,16 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
         label: "Last session",
         icon: <ClipboardList className="h-3.5 w-3.5" />,
       });
+      if (isPrimary) {
+        items.push({
+          value: "maintainers",
+          label: "Maintainers",
+          icon: <Users className="h-3.5 w-3.5" />,
+        });
+      }
     }
     return items;
-  }, [status]);
+  }, [status, isPrimary]);
 
   useEffect(() => {
     if (!tabItems.some((t) => t.value === tab)) setTab("details");
@@ -252,23 +264,41 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
               <p className="mt-0.5 text-sm text-rose-900/90 dark:text-rose-100/90">
                 {data.rejectionReason || "No reason provided."}
               </p>
-              <button
-                onClick={() => {
-                  resubmit({ id: data._id });
-                  posthog.capture("location_resubmitted", {
-                    location_id: data._id,
-                    location_name: data.name,
-                    town: data.town,
-                  });
-                }}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-rose-800"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Resubmit for review
-              </button>
+              {isPrimary ? (
+                <button
+                  onClick={() => {
+                    resubmit({ id: data._id });
+                    posthog.capture("location_resubmitted", {
+                      location_id: data._id,
+                      location_name: data.name,
+                      town: data.town,
+                    });
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-rose-800"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Resubmit for review
+                </button>
+              ) : (
+                <p className="mt-3 text-xs italic text-rose-800/80 dark:text-rose-200/80">
+                  Only the primary organizer can resubmit this field.
+                </p>
+              )}
             </div>
           </div>
         </section>
+      ) : null}
+
+      {/* Maintainer access banner — shown to approved co-maintainers so they
+          know which powers they have on this field. */}
+      {viewerRole === "maintainer" ? (
+        <div className="owner-anim flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-4 py-2 text-xs font-semibold text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <ShieldCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+          <span>
+            You&rsquo;re a co-maintainer here. You can edit details, set weekly
+            status, and write recaps. The primary organizer manages access.
+          </span>
+        </div>
       ) : null}
 
       {/* Tab strip — only show if there's more than one tab */}
@@ -348,6 +378,16 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
                 await saveRecap({ id: data._id, ...v });
               }}
             />
+          </PanelCard>
+        ) : null}
+
+        {tab === "maintainers" && status === "approved" && isPrimary ? (
+          <PanelCard
+            eyebrow="Co-maintainers"
+            title="Approve and manage helpers"
+            subtitle="Approved maintainers can edit every field above. Only you can grant or revoke access."
+          >
+            <MaintainersPanel locationId={data._id} locationName={data.name} />
           </PanelCard>
         ) : null}
       </div>

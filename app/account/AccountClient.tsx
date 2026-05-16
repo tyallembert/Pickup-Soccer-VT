@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { CheckCircle2, Hourglass, MapPin, Plus, Shield, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Hourglass,
+  MapPin,
+  Plus,
+  Shield,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
@@ -33,11 +41,16 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
     api.public.myLocations,
     isAuthenticated ? {} : "skip",
   );
+  const maintained = useQuery(
+    api.maintainers.myMaintainedLocations,
+    isAuthenticated ? {} : "skip",
+  );
   const { viewAsUser } = useViewMode();
   const isAdmin = role === "admin" && !viewAsUser;
   const root = useRef<HTMLElement>(null);
 
-  const isLoading = authLoading || locations === undefined;
+  const isLoading =
+    authLoading || locations === undefined || maintained === undefined;
 
   useGSAP(
     () => {
@@ -193,6 +206,52 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
           </ul>
         )}
       </section>
+
+      {/* Helping maintain — fields where the user was approved as a co-maintainer */}
+      {maintained.length > 0 ? (
+        <section className="account-anim overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <header className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-900">
+            <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Helping maintain
+            </p>
+            <h2 className="mt-0.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Fields you co-organize
+            </h2>
+          </header>
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+            {maintained.map((l) => (
+              <li key={l._id}>
+                <Link
+                  href={`/account/locations/${l._id}`}
+                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                      {l.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-zinc-500">
+                      {l.town}
+                      {typeof l.dayOfWeek === "number" && l.startTime
+                        ? ` · ${formatDayPlural(l.dayOfWeek)} at ${formatStartTime(l.startTime)}`
+                        : null}
+                    </p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
+                    Maintainer
+                  </span>
+                  <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
+                    →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

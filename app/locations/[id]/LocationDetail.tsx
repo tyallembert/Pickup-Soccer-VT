@@ -26,6 +26,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { LocationPin } from "@/app/_components/LocationPin";
+import { MaintainCTA } from "@/app/_components/MaintainCTA";
 import {
   formatDateLong,
   formatDayPlural,
@@ -202,6 +203,14 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
           ) : null}
         </div>
       </header>
+
+      {/* Co-maintainer CTA — context-aware: shows the right state for owner,
+          approved maintainer, pending request, or fresh "request access". */}
+      <MaintainCTA
+        locationId={data._id}
+        locationName={data.name}
+        town={data.town}
+      />
 
       {/* When + Where */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

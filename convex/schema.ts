@@ -67,4 +67,18 @@ export default defineSchema({
   })
     .index("by_location_and_date", ["locationId", "date"])
     .index("by_location", ["locationId"]),
+
+  // Co-maintainer relationships. The primary owner (locations.ownerId) approves
+  // requests and can revoke. An "approved" row grants the same edit powers the
+  // primary owner has, except it cannot manage other maintainers.
+  locationMaintainers: defineTable({
+    locationId: v.id("locations"),
+    userId: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("approved")),
+    requestedAt: v.number(),
+    approvedAt: v.optional(v.number()),
+  })
+    .index("by_location_and_user", ["locationId", "userId"])
+    .index("by_location_and_status", ["locationId", "status"])
+    .index("by_user_and_status", ["userId", "status"]),
 });

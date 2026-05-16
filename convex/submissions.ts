@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
-import { requireAuth, requireOwnerOf } from "./lib/auth";
+import { requireAuth, requirePrimaryOwnerOf } from "./lib/auth";
 
 const MAX_NOT_YET_APPROVED = 3;
 
@@ -51,7 +51,7 @@ export const submitLocation = mutation({
 export const resubmitLocation = mutation({
   args: { id: v.id("locations") },
   handler: async (ctx, { id }) => {
-    const { location } = await requireOwnerOf(ctx, id);
+    const { location } = await requirePrimaryOwnerOf(ctx, id);
     if (location.status !== "rejected") {
       throw new ConvexError("Only rejected submissions can be resubmitted.");
     }

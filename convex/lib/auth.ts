@@ -27,7 +27,45 @@ export async function requireAdmin(
   return user;
 }
 
+export type LocationRole = "owner" | "admin" | "maintainer";
+
+export type LocationAccess = {
+  user: Doc<"users">;
+  location: Doc<"locations">;
+  role: LocationRole;
+};
+
+// Allows the primary owner, any admin, OR an approved co-maintainer.
 export async function requireOwnerOf(
+  ctx: QueryCtx | MutationCtx,
+  locationId: Id<"locations">,
+): Promise<LocationAccess> {
+  const user = await requireAuth(ctx);
+  const location = await ctx.db.get(locationId);
+  if (!location) {
+    throw new ConvexError("Location not found");
+  }
+  if (location.ownerId === user._id) {
+    return { user, location, role: "owner" };
+  }
+  if (user.role === "admin") {
+    return { user, location, role: "admin" };
+  }
+  const maintainer = await ctx.db
+    .query("locationMaintainers")
+    .withIndex("by_location_and_user", (q) =>
+      q.eq("locationId", locationId).eq("userId", user._id),
+    )
+    .unique();
+  if (maintainer && maintainer.status === "approved") {
+    return { user, location, role: "maintainer" };
+  }
+  throw new ConvexError("Forbidden");
+}
+
+// Only the primary owner (or an admin) — used for managing maintainers and
+// the resubmit-for-review flow.
+export async function requirePrimaryOwnerOf(
   ctx: QueryCtx | MutationCtx,
   locationId: Id<"locations">,
 ): Promise<{ user: Doc<"users">; location: Doc<"locations"> }> {

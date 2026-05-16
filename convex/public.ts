@@ -182,7 +182,7 @@ export const myLocations = query({
 export const getMyLocation = query({
   args: { id: v.id("locations") },
   handler: async (ctx, { id }) => {
-    const { location } = await requireOwnerOf(ctx, id);
+    const { location, role } = await requireOwnerOf(ctx, id);
     const now = new Date();
     let thisWeek: { date: string; isOn: boolean; reason?: string } | null = null;
     let lastSession: PublicLocation["lastSession"] = null;
@@ -227,6 +227,8 @@ export const getMyLocation = query({
       ...location,
       thisWeek,
       lastSession,
+      viewerRole: role,
+      viewerIsPrimaryOwner: role === "owner" || role === "admin",
     };
   },
 });

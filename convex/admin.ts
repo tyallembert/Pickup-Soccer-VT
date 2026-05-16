@@ -127,6 +127,13 @@ export const deleteLocation = mutation({
     for (const d of days) {
       await ctx.db.delete(d._id);
     }
+    const maintainers = await ctx.db
+      .query("locationMaintainers")
+      .withIndex("by_location_and_user", (q) => q.eq("locationId", id))
+      .take(1000);
+    for (const m of maintainers) {
+      await ctx.db.delete(m._id);
+    }
     await ctx.db.delete(id);
     return null;
   },
