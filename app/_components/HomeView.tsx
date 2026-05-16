@@ -15,8 +15,10 @@ type ViewMode = "map" | "list";
 
 export function HomeView({
   preloadedLocations,
+  children,
 }: {
   preloadedLocations: Preloaded<typeof api.public.listLocations>;
+  children?: React.ReactNode;
 }) {
   const [filters, setFilters] = useState({ search: "", town: "", dayOfWeek: "" });
   const [viewMode, setViewMode] = useState<ViewMode>("map");
@@ -47,7 +49,9 @@ export function HomeView({
       <SoccerField />
       <NextUpGame locations={locations} />
 
-      <section id="locations" className="px-6 pb-10 pt-10">
+      {children}
+
+      <section id="locations" className="px-6 pb-16 pt-10">
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_50px_-30px_rgba(16,185,129,0.55)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[0_18px_50px_-30px_rgba(16,185,129,0.35)]">
           <Filters
             {...filters}

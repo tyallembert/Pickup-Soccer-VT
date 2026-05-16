@@ -96,8 +96,9 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
-      <HomeView preloadedLocations={preloadedLocations} />
-      <DirectoryByTown locations={locations} />
+      <HomeView preloadedLocations={preloadedLocations}>
+        <DirectoryByTown locations={locations} />
+      </HomeView>
     </main>
   );
 }

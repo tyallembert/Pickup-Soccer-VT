@@ -33,7 +33,7 @@ export function DirectoryByTown({
     <section
       id="all-fields"
       aria-labelledby="all-fields-heading"
-      className="px-6 pb-16"
+      className="px-6 pt-10"
     >
       <header className="mb-5 flex flex-col gap-1">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-400">
