@@ -119,12 +119,12 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
   }
 
   const isOn = data.thisWeek.isOn;
-  const heroFrom = isOn ? "from-emerald-700" : "from-rose-700";
-  const heroVia = isOn ? "via-emerald-600" : "via-rose-600";
-  const heroTo = isOn ? "to-emerald-500" : "to-red-500";
+  const heroFrom = isOn ? "from-emerald-700" : "from-amber-700";
+  const heroVia = isOn ? "via-emerald-600" : "via-orange-600";
+  const heroTo = isOn ? "to-emerald-500" : "to-amber-500";
   const heroShadow = isOn
     ? "shadow-[0_20px_60px_rgba(16,185,129,0.20)]"
-    : "shadow-[0_20px_60px_rgba(225,29,72,0.20)]";
+    : "shadow-[0_20px_60px_rgba(245,158,11,0.22)]";
   const rel = relativeDay(data.thisWeek.date);
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     data.address,
