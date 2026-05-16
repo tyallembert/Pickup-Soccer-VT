@@ -2,15 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useGSAP } from "@gsap/react";
+import { useConvexAuth } from "convex/react";
 import gsap from "gsap";
-
-const FIND_LINKS = [
-  { label: "Find a field", href: "/" },
-  { label: "Submit a field", href: "/submit" },
-  { label: "Your account", href: "/account" },
-] as const;
 
 const PLAY_LINKS = [
   { label: "Sign in", href: "/signin" },
@@ -18,6 +13,18 @@ const PLAY_LINKS = [
 ] as const;
 
 export function Footer() {
+  const { isAuthenticated } = useConvexAuth();
+  const findLinks = useMemo(
+    () => [
+      { label: "Find a field", href: "/" },
+      { label: "Submit a field", href: "/submit" },
+      ...(isAuthenticated
+        ? [{ label: "Your account", href: "/account" }]
+        : []),
+    ],
+    [isAuthenticated],
+  );
+
   return (
     <footer className="relative mt-auto overflow-hidden bg-zinc-950 text-zinc-200">
       {/* Top emerald edge */}
@@ -32,7 +39,7 @@ export function Footer() {
       <div className="relative z-10 mx-auto max-w-6xl px-6 pb-12 pt-14">
         <div className="grid gap-12 md:grid-cols-[1.5fr_1fr_1fr]">
           <BrandBlock />
-          <LinkColumn label="Find a game" links={FIND_LINKS} />
+          <LinkColumn label="Find a game" links={findLinks} />
           <LinkColumn label="Lace up" links={PLAY_LINKS} />
         </div>
 
@@ -249,15 +256,22 @@ function FooterLink({ href, label }: { href: string; label: string }) {
 
   const onLeave = useCallback(() => {
     if (lineRef.current) {
+      gsap.killTweensOf(lineRef.current);
       gsap.to(lineRef.current, {
         scaleX: 0,
         transformOrigin: "right center",
         duration: 0.28,
         ease: "power3.in",
+        overwrite: true,
       });
     }
     if (ballRef.current) {
-      gsap.to(ballRef.current, { opacity: 0, duration: 0.2 });
+      gsap.killTweensOf(ballRef.current);
+      gsap.to(ballRef.current, {
+        opacity: 0,
+        duration: 0.2,
+        overwrite: true,
+      });
     }
   }, []);
 

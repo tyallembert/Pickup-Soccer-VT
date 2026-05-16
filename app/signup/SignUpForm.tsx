@@ -52,20 +52,25 @@ export function SignUpForm() {
         delay: 0.25,
         clearProps: "all",
       });
-      gsap.from(".auth-ball", {
+      const tl = gsap.timeline({ delay: 0.1 });
+      tl.from(".auth-ball", {
         scale: 0.4,
         opacity: 0,
         rotation: -30,
         duration: 0.8,
         ease: "back.out(1.6)",
-        delay: 0.1,
+        clearProps: "scale",
       });
-      gsap.to(".auth-ball", {
-        rotation: "+=360",
-        duration: 24,
-        ease: "none",
-        repeat: -1,
-      });
+      tl.to(
+        ".auth-ball",
+        {
+          rotation: "+=360",
+          duration: 24,
+          ease: "none",
+          repeat: -1,
+        },
+        ">",
+      );
     },
     { scope: root },
   );
