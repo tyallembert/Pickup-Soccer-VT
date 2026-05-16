@@ -323,7 +323,6 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
               date={data.thisWeek.date}
               isOn={data.thisWeek.isOn}
               reason={data.thisWeek.reason}
-              dayOfWeek={data.dayOfWeek}
               onSave={async ({ isOn, reason }) => {
                 await setStatus({ id: data._id, isOn, reason });
               }}

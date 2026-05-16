@@ -4,7 +4,13 @@ import { useMemo, useRef } from "react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ArrowRight, CalendarClock, MapPin, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  CalendarClock,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
 import {
   formatDateLong,
   formatDayLong,
@@ -18,19 +24,20 @@ export type NextLocation = {
   details: string;
   dayOfWeek: number;
   startTime: string;
-  thisWeek: { date: string; isOn: boolean };
+  thisWeek: { date: string; isOn: boolean; reason?: string };
 };
 
 function pickNext(locations: NextLocation[] | undefined): NextLocation | null {
-  if (!locations) return null;
-  const upcoming = locations.filter((l) => l.thisWeek.isOn);
-  if (upcoming.length === 0) return null;
-  return [...upcoming].sort((a, b) => {
+  if (!locations || locations.length === 0) return null;
+  return [...locations].sort((a, b) => {
     if (a.thisWeek.date !== b.thisWeek.date) {
       return a.thisWeek.date < b.thisWeek.date ? -1 : 1;
     }
     if (a.startTime !== b.startTime) {
       return a.startTime < b.startTime ? -1 : 1;
+    }
+    if (a.thisWeek.isOn !== b.thisWeek.isOn) {
+      return a.thisWeek.isOn ? -1 : 1;
     }
     return a.name.localeCompare(b.name);
   })[0];
@@ -52,7 +59,6 @@ function relativeDay(date: string): string {
     (target.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24),
   );
   if (diffDays === 1) return "Tomorrow";
-  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
   return `In ${diffDays} days`;
 }
 
@@ -112,36 +118,83 @@ export function NextUpGame({
   const rel = relativeDay(next.thisWeek.date);
   const time = formatStartTime(next.startTime);
   const dayName = formatDayLong(next.dayOfWeek);
+  const isOff = !next.thisWeek.isOn;
+  const reason = next.thisWeek.reason?.trim();
+
+  const theme = isOff
+    ? {
+        cardBorder: "border-amber-200/70 dark:border-amber-900/60",
+        cardShadow:
+          "shadow-[0_10px_28px_rgba(245,158,11,0.18)] hover:shadow-[0_14px_32px_rgba(245,158,11,0.28)]",
+        blockGradient: "from-amber-700 via-orange-600 to-amber-500",
+        eyebrow: "Off this week",
+        eyebrowColor: "text-amber-50/90",
+        chipText: "Cancelled",
+        ctaColor:
+          "text-amber-700 group-hover:text-amber-600 dark:text-amber-300",
+        accent: "text-amber-600 dark:text-amber-400",
+      }
+    : {
+        cardBorder: "border-emerald-200/60 dark:border-emerald-900/60",
+        cardShadow:
+          "shadow-[0_10px_28px_rgba(16,185,129,0.14)] hover:shadow-[0_14px_32px_rgba(16,185,129,0.24)]",
+        blockGradient: "from-emerald-700 via-emerald-600 to-emerald-500",
+        eyebrow: "Next pickup",
+        eyebrowColor: "text-emerald-100/90",
+        chipText: rel,
+        ctaColor:
+          "text-emerald-700 group-hover:text-emerald-600 dark:text-emerald-300",
+        accent: "text-emerald-600 dark:text-emerald-400",
+      };
 
   return (
     <section ref={root} className="px-6 pt-8">
       <Link
         href={`/locations/${next._id}`}
-        className="next-up-anim group block overflow-hidden rounded-2xl border border-emerald-200/60 bg-white shadow-[0_10px_28px_rgba(16,185,129,0.14)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(16,185,129,0.24)] dark:border-emerald-900/60 dark:bg-zinc-950"
+        className={`next-up-anim group block overflow-hidden rounded-2xl border ${theme.cardBorder} bg-white transition hover:-translate-y-0.5 ${theme.cardShadow} dark:bg-zinc-950`}
       >
         <div className="flex flex-col items-stretch sm:flex-row">
-          {/* Date block — emerald gradient like the wizard / owner approved header */}
-          <div className="relative flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 px-6 py-6 text-white sm:w-48 sm:flex-shrink-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-100/90">
-              Next pickup
+          {/* Date block — gradient swaps to amber when the game is off */}
+          <div
+            className={`relative flex flex-col items-center justify-center gap-1 bg-gradient-to-br ${theme.blockGradient} px-6 py-6 text-white sm:w-48 sm:flex-shrink-0`}
+          >
+            <p
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${theme.eyebrowColor}`}
+            >
+              {theme.eyebrow}
             </p>
-            <p className="text-2xl font-bold uppercase leading-none tracking-wide">
+            <p
+              className={`text-2xl font-bold uppercase leading-none tracking-wide ${
+                isOff ? "line-through decoration-2 decoration-white/70" : ""
+              }`}
+            >
               {dayName}
             </p>
-            <p className="text-sm font-semibold tracking-wide text-white/95">
+            <p
+              className={`text-sm font-semibold tracking-wide ${
+                isOff ? "text-white/80" : "text-white/95"
+              }`}
+            >
               {time}
             </p>
             <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)] backdrop-blur">
-              {rel}
+              {theme.chipText}
             </span>
-            {/* live dot — same on-air motif used in status indicators */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute right-3 top-3 flex h-2 w-2 items-center justify-center"
-            >
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-            </span>
+            {/* Live dot — pings for active games, static for cancelled */}
+            {isOff ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-3 inline-flex h-2 w-2 rounded-full bg-white/80"
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-3 flex h-2 w-2 items-center justify-center"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              </span>
+            )}
           </div>
 
           {/* Content */}
@@ -151,21 +204,30 @@ export function NextUpGame({
             </h2>
             <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
               <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <MapPin className={`h-3.5 w-3.5 ${theme.accent}`} />
                 {next.town}
               </span>
               <span className="text-zinc-300 dark:text-zinc-700">·</span>
               <span className="inline-flex items-center gap-1">
-                <CalendarClock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <CalendarClock className={`h-3.5 w-3.5 ${theme.accent}`} />
                 {formatDateLong(next.thisWeek.date)}
               </span>
             </p>
-            {next.details ? (
+            {isOff ? (
+              <p className="mt-2 inline-flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="whitespace-pre-line">
+                  {reason || "Cancelled this week."}
+                </span>
+              </p>
+            ) : next.details ? (
               <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-zinc-600 dark:text-zinc-400">
                 {next.details}
               </p>
             ) : null}
-            <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-700 transition group-hover:gap-2 group-hover:text-emerald-600 dark:text-emerald-300">
+            <div
+              className={`mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider transition group-hover:gap-2 ${theme.ctaColor}`}
+            >
               View details
               <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
             </div>

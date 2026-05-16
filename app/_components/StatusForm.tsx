@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CalendarClock, Check, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/app/_lib/cn";
-import { formatDateLong, formatDayLong } from "../_lib/format";
+import { formatDateLong } from "../_lib/format";
 import posthog from "posthog-js";
 
 const inputCls =
@@ -13,13 +13,11 @@ export function StatusForm({
   date,
   isOn,
   reason,
-  dayOfWeek,
   onSave,
 }: {
   date: string;
   isOn: boolean;
   reason: string | undefined;
-  dayOfWeek: number;
   onSave: (next: { isOn: boolean; reason?: string }) => Promise<void>;
 }) {
   const [next, setNext] = useState({ isOn, reason: reason ?? "" });
@@ -52,7 +50,7 @@ export function StatusForm({
       {/* Game-day chip */}
       <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/70 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
         <CalendarClock className="h-3.5 w-3.5" />
-        {formatDayLong(dayOfWeek)}, {formatDateLong(date)}
+        {formatDateLong(date)}
       </div>
 
       {/* On / off pill toggle */}

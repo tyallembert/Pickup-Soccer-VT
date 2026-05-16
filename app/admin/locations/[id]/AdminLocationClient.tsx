@@ -255,7 +255,6 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
               date={upcoming}
               isOn={true}
               reason={undefined}
-              dayOfWeek={data.dayOfWeek}
               onSave={async ({ isOn, reason }) => {
                 await setStatus({ id, isOn, reason });
               }}
