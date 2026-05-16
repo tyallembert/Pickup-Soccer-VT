@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useViewMode } from "@/app/_lib/view-mode";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -34,6 +36,15 @@ type AdminData = {
 const AdminDataContext = createContext<AdminData | null>(null);
 
 export function AdminDataProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { viewAsUser } = useViewMode();
+
+  // If the admin has toggled "view as user", bounce any /admin/* navigation to
+  // /account so the preview stays consistent (back button, refresh, direct URL).
+  useEffect(() => {
+    if (viewAsUser) router.replace("/account");
+  }, [viewAsUser, router]);
+
   // Subscriptions mounted at the admin-layout level — they stay alive across
   // navigations between /admin, /admin/queue, /admin/locations, so the data
   // is already warm whenever a sub-page renders.

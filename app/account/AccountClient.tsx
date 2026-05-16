@@ -9,6 +9,7 @@ import { CheckCircle2, Hourglass, MapPin, Plus, Shield, XCircle } from "lucide-r
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import { useViewMode } from "@/app/_lib/view-mode";
 import { SignOutButton } from "./SignOutButton";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -32,7 +33,8 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
     api.public.myLocations,
     isAuthenticated ? {} : "skip",
   );
-  const isAdmin = role === "admin";
+  const { viewAsUser } = useViewMode();
+  const isAdmin = role === "admin" && !viewAsUser;
   const root = useRef<HTMLElement>(null);
 
   const isLoading = authLoading || locations === undefined;

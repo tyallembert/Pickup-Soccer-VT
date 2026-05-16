@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
+  Eye,
+  EyeOff,
   Layers,
   ListChecks,
   LogOut,
@@ -14,6 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/app/_lib/cn";
+import { useViewMode } from "@/app/_lib/view-mode";
 
 type Item = {
   href: string;
@@ -56,9 +59,25 @@ export function AdminPillNav() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const me = useQuery(api.public.me, isAuthenticated ? {} : "skip");
   const { signOut } = useAuthActions();
+  const { viewAsUser, setViewAsUser } = useViewMode();
 
   if (isLoading || !isAuthenticated) return null;
   if (!me || me.role !== "admin") return null;
+
+  if (viewAsUser) {
+    return (
+      <button
+        type="button"
+        onClick={() => setViewAsUser(false)}
+        title="Exit user preview"
+        aria-label="Exit user preview"
+        className="pointer-events-auto fixed left-4 top-1/2 z-[1100] hidden -translate-y-1/2 items-center gap-2 rounded-full border border-emerald-500/40 bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-300 shadow-2xl shadow-black/40 backdrop-blur-xl transition hover:bg-emerald-500/15 hover:text-emerald-200 sm:inline-flex"
+      >
+        <EyeOff className="h-3.5 w-3.5" />
+        Exit preview
+      </button>
+    );
+  }
 
   return (
     <nav
@@ -90,6 +109,20 @@ export function AdminPillNav() {
           item={PROFILE_ITEM}
           active={PROFILE_ITEM.match(pathname)}
         />
+
+        <button
+          type="button"
+          onClick={() => {
+            setViewAsUser(true);
+            if (pathname.startsWith("/admin")) router.push("/account");
+          }}
+          title="Preview the site as a normal user"
+          aria-label="Preview as user"
+          className="group inline-flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-[10px] font-semibold text-white/70 transition hover:bg-emerald-500/20 hover:text-emerald-100"
+        >
+          <Eye className="h-4 w-4" />
+          <span>As user</span>
+        </button>
 
         <button
           type="button"

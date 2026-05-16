@@ -5,6 +5,7 @@ import { ConvexClientProvider } from "./ConvexClientProvider";
 import { PillNav } from "./_components/PillNav";
 import { AdminPillNav } from "./_components/AdminPillNav";
 import { Footer } from "./_components/Footer";
+import { ViewModeProvider } from "./_lib/view-mode";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -116,10 +117,12 @@ export default function RootLayout({
       >
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
-            <AdminPillNav />
-            <PillNav />
-            <main className="min-h-dvh">{children}</main>
-            <Footer />
+            <ViewModeProvider>
+              <AdminPillNav />
+              <PillNav />
+              <main className="min-h-dvh">{children}</main>
+              <Footer />
+            </ViewModeProvider>
           </ConvexClientProvider>
         </body>
       </html>
