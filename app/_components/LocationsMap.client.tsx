@@ -6,8 +6,16 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Map as LeafletMap } from "leaflet";
 import { LocateFixed, ZoomIn, ZoomOut } from "lucide-react";
 import gsap from "gsap";
-import { formatDayPlural, formatStartTime } from "../_lib/format";
+import { formatDayPlural, formatTimeRange } from "../_lib/format";
 import { VERMONT_LEAFLET_MAX_BOUNDS, VERMONT_RING_LATLNG } from "../_lib/vermont";
+
+export type MapSchedule = {
+  _id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime?: string;
+  thisWeek: { isOn: boolean };
+};
 
 export type MapLocation = {
   _id: string;
@@ -15,8 +23,7 @@ export type MapLocation = {
   town: string;
   lat: number;
   lng: number;
-  dayOfWeek: number;
-  startTime: string;
+  schedules: MapSchedule[];
 };
 
 const VT_CENTER: [number, number] = [43.95, -72.65];
@@ -178,9 +185,20 @@ export default function LocationsMapClient({
                     <div className="space-y-1">
                       <div className="text-sm font-semibold text-zinc-900">{l.name}</div>
                       <div className="text-xs text-zinc-600">{l.town}</div>
-                      <div className="text-xs text-emerald-700">
-                        {formatDayPlural(l.dayOfWeek)} at {formatStartTime(l.startTime)}
-                      </div>
+                      <ul className="m-0 list-none p-0 text-xs text-emerald-700">
+                        {l.schedules.map((s) => (
+                          <li key={s._id} className="flex items-center gap-1.5">
+                            <span
+                              className={
+                                s.thisWeek.isOn
+                                  ? "inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                                  : "inline-block h-1.5 w-1.5 rounded-full bg-rose-500"
+                              }
+                            />
+                            {formatDayPlural(s.dayOfWeek)} at {formatTimeRange(s.startTime, s.endTime)}
+                          </li>
+                        ))}
+                      </ul>
                       <a
                         href={`/locations/${l._id}`}
                         className="mt-1 inline-block text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
