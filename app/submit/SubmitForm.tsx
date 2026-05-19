@@ -51,16 +51,19 @@ import {
 
 const STORAGE_KEY = "pickup-soccer-submit-draft";
 
+type ScheduleDraft = { dayOfWeek: number; startTime: string; endTime?: string };
+
 type Draft = {
   name: string;
   town: string;
   address: string;
   lat: number | null;
   lng: number | null;
-  dayOfWeek: number;
-  startTime: string;
+  schedules: ScheduleDraft[];
   details: string;
 };
+
+const EMPTY_SCHEDULE: ScheduleDraft = { dayOfWeek: 1, startTime: "18:00" };
 
 const EMPTY_DRAFT: Draft = {
   name: "",
@@ -68,8 +71,7 @@ const EMPTY_DRAFT: Draft = {
   address: "",
   lat: null,
   lng: null,
-  dayOfWeek: 1,
-  startTime: "18:00",
+  schedules: [EMPTY_SCHEDULE],
   details: "",
 };
 
@@ -124,7 +126,14 @@ function validateStep(s: number, d: Draft): string | null {
       return "Drop the pin on the map before continuing.";
   }
   if (s === 2) {
-    if (!d.startTime) return "What time does the game kick off?";
+    if (d.schedules.length === 0) return "Add at least one game time.";
+    for (let i = 0; i < d.schedules.length; i++) {
+      const row = d.schedules[i];
+      if (!row.startTime) return `Slot ${i + 1}: pick a start time.`;
+      if (row.endTime && row.endTime <= row.startTime) {
+        return `Slot ${i + 1}: end time must be after the start time.`;
+      }
+    }
   }
   return null;
 }
@@ -169,7 +178,29 @@ function SubmitFormProvider({ children }: { children: React.ReactNode }) {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        setDraft(JSON.parse(raw) as Draft);
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        // Legacy drafts had flat dayOfWeek/startTime. Upcast to schedules[].
+        if (
+          parsed &&
+          !Array.isArray((parsed as { schedules?: unknown }).schedules) &&
+          typeof (parsed as { dayOfWeek?: unknown }).dayOfWeek === "number" &&
+          typeof (parsed as { startTime?: unknown }).startTime === "string"
+        ) {
+          const upcast = {
+            ...parsed,
+            schedules: [
+              {
+                dayOfWeek: parsed.dayOfWeek as number,
+                startTime: parsed.startTime as string,
+              },
+            ],
+          } as Record<string, unknown>;
+          delete upcast.dayOfWeek;
+          delete upcast.startTime;
+          setDraft(upcast as unknown as Draft);
+        } else {
+          setDraft(parsed as unknown as Draft);
+        }
       } catch {
         // ignore corrupt draft
       }
@@ -284,15 +315,18 @@ function SubmitFormProvider({ children }: { children: React.ReactNode }) {
         address: d.address,
         lat: d.lat!,
         lng: d.lng!,
-        dayOfWeek: d.dayOfWeek,
-        startTime: d.startTime,
         details: d.details,
+        schedules: d.schedules.map((s) => ({
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
       });
       posthog.capture("location_submitted", {
         location_id: id,
         location_name: d.name,
         town: d.town,
-        day_of_week: d.dayOfWeek,
+        schedule_count: d.schedules.length,
       });
       sessionStorage.removeItem(STORAGE_KEY);
       setStatus("redirecting");
@@ -939,50 +973,110 @@ function WhenStep() {
     { short: "F", full: "Fri" },
     { short: "S", full: "Sat" },
   ];
+
+  const patchRow = (i: number, patch: Partial<ScheduleDraft>) => {
+    const next = draft.schedules.slice();
+    next[i] = { ...next[i], ...patch };
+    update({ schedules: next });
+  };
+  const removeRow = (i: number) => {
+    if (draft.schedules.length === 1) return;
+    const next = draft.schedules.slice();
+    next.splice(i, 1);
+    update({ schedules: next });
+  };
+  const addRow = () =>
+    update({ schedules: [...draft.schedules, { ...EMPTY_SCHEDULE }] });
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-zinc-800 dark:text-zinc-200">
-          Day of week
-        </span>
+    <div className="flex flex-col gap-6">
+      {draft.schedules.map((row, i) => (
         <div
-          role="radiogroup"
-          aria-label="Day of week"
-          className="inline-flex w-full items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+          key={i}
+          className="relative rounded-2xl border border-zinc-200 bg-white/60 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60"
         >
-          {days.map((d, i) => {
-            const active = draft.dayOfWeek === i;
-            return (
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">
+              Slot {i + 1}
+            </p>
+            {draft.schedules.length > 1 ? (
               <button
                 type="button"
-                role="radio"
-                aria-checked={active}
-                key={i}
-                onClick={() => update({ dayOfWeek: i })}
-                title={d.full}
-                className={cn(
-                  "flex h-9 flex-1 select-none items-center justify-center rounded-full text-xs font-bold transition",
-                  active
-                    ? "bg-emerald-600 text-white shadow-[0_3px_10px_rgba(16,185,129,0.45)]"
-                    : "text-zinc-600 hover:bg-emerald-50 hover:text-emerald-800 dark:text-zinc-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
-                )}
+                onClick={() => removeRow(i)}
+                aria-label={`Remove slot ${i + 1}`}
+                className="rounded-full p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
               >
-                <span className="sm:hidden">{d.short}</span>
-                <span className="hidden sm:inline">{d.full}</span>
+                <X className="h-3.5 w-3.5" />
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ) : null}
+          </div>
 
-      <Field label="Start time" hint="24-hour format auto-converts in the directory.">
-        <input
-          type="time"
-          value={draft.startTime}
-          onChange={(e) => update({ startTime: e.target.value })}
-          className={inputCls}
-        />
-      </Field>
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                Day of week
+              </span>
+              <div
+                role="radiogroup"
+                aria-label={`Day of week for slot ${i + 1}`}
+                className="inline-flex w-full items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                {days.map((d, di) => {
+                  const active = row.dayOfWeek === di;
+                  return (
+                    <button
+                      key={di}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => patchRow(i, { dayOfWeek: di })}
+                      title={d.full}
+                      className={cn(
+                        "flex h-9 flex-1 select-none items-center justify-center rounded-full text-xs font-bold transition",
+                        active
+                          ? "bg-emerald-600 text-white shadow-[0_3px_10px_rgba(16,185,129,0.45)]"
+                          : "text-zinc-600 hover:bg-emerald-50 hover:text-emerald-800 dark:text-zinc-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
+                      )}
+                    >
+                      <span className="sm:hidden">{d.short}</span>
+                      <span className="hidden sm:inline">{d.full}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Start time">
+                <input
+                  type="time"
+                  value={row.startTime}
+                  onChange={(e) => patchRow(i, { startTime: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="End time (optional)">
+                <input
+                  type="time"
+                  value={row.endTime ?? ""}
+                  onChange={(e) =>
+                    patchRow(i, { endTime: e.target.value || undefined })
+                  }
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={addRow}
+        className="inline-flex w-fit items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+      >
+        + Add another time
+      </button>
     </div>
   );
 }
