@@ -14,7 +14,6 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
 import type * as maintainers from "../maintainers.js";
-import type * as migrations_locationSchedules from "../migrations/locationSchedules.js";
 import type * as owner from "../owner.js";
 import type * as public_ from "../public.js";
 import type * as seedAdmin from "../seedAdmin.js";
@@ -34,7 +33,6 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;
   maintainers: typeof maintainers;
-  "migrations/locationSchedules": typeof migrations_locationSchedules;
   owner: typeof owner;
   public: typeof public_;
   seedAdmin: typeof seedAdmin;

@@ -42,8 +42,6 @@ export default defineSchema({
     address: v.string(),
     lat: v.number(),
     lng: v.number(),
-    dayOfWeek: v.optional(v.number()), // 0 = Sunday … 6 = Saturday
-    startTime: v.optional(v.string()), // "HH:mm" 24-hour
     details: v.string(), // markdown
     ownerId: v.id("users"),
     status: locationStatus,
@@ -66,7 +64,7 @@ export default defineSchema({
 
   gameDays: defineTable({
     locationId: v.id("locations"),
-    scheduleId: v.optional(v.id("locationSchedules")),
+    scheduleId: v.id("locationSchedules"),
     date: v.string(), // "YYYY-MM-DD" in America/New_York
     isOn: v.optional(v.boolean()),
     reason: v.optional(v.string()),
@@ -75,7 +73,6 @@ export default defineSchema({
     weather: v.optional(v.string()),
     recapNotes: v.optional(v.string()),
   })
-    .index("by_location_and_date", ["locationId", "date"])
     .index("by_location", ["locationId"])
     .index("by_schedule_and_date", ["scheduleId", "date"]),
 
