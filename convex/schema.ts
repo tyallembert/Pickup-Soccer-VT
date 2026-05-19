@@ -42,8 +42,8 @@ export default defineSchema({
     address: v.string(),
     lat: v.number(),
     lng: v.number(),
-    dayOfWeek: v.number(), // 0 = Sunday … 6 = Saturday
-    startTime: v.string(), // "HH:mm" 24-hour
+    dayOfWeek: v.optional(v.number()), // 0 = Sunday … 6 = Saturday
+    startTime: v.optional(v.string()), // "HH:mm" 24-hour
     details: v.string(), // markdown
     ownerId: v.id("users"),
     status: locationStatus,
@@ -55,8 +55,18 @@ export default defineSchema({
     .index("by_owner_and_status", ["ownerId", "status"])
     .index("by_status_and_town", ["status", "town"]),
 
+  locationSchedules: defineTable({
+    locationId: v.id("locations"),
+    dayOfWeek: v.number(),
+    startTime: v.string(),
+    endTime: v.optional(v.string()),
+  })
+    .index("by_location", ["locationId"])
+    .index("by_dayOfWeek", ["dayOfWeek"]),
+
   gameDays: defineTable({
     locationId: v.id("locations"),
+    scheduleId: v.optional(v.id("locationSchedules")),
     date: v.string(), // "YYYY-MM-DD" in America/New_York
     isOn: v.optional(v.boolean()),
     reason: v.optional(v.string()),
@@ -66,7 +76,8 @@ export default defineSchema({
     recapNotes: v.optional(v.string()),
   })
     .index("by_location_and_date", ["locationId", "date"])
-    .index("by_location", ["locationId"]),
+    .index("by_location", ["locationId"])
+    .index("by_schedule_and_date", ["scheduleId", "date"]),
 
   // Co-maintainer relationships. The primary owner (locations.ownerId) approves
   // requests and can revoke. An "approved" row grants the same edit powers the
