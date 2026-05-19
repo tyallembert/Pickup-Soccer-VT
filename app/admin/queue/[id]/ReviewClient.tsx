@@ -120,10 +120,14 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
             <span className="mx-1">·</span>
             <span className="text-xs text-zinc-500">{data.address}</span>
           </p>
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-            <CalendarClock className="h-4 w-4" />
-            {formatDayPlural(data.dayOfWeek)} at {formatStartTime(data.startTime)}
-          </p>
+          <div className="flex flex-col gap-0.5 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+            {data.schedules.map((s) => (
+              <p key={s._id} className="inline-flex items-center gap-1.5">
+                <CalendarClock className="h-4 w-4" />
+                {formatDayPlural(s.dayOfWeek)} at {formatStartTime(s.startTime)}
+              </p>
+            ))}
+          </div>
           {data.details ? (
             <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-zinc-50 p-3 font-mono text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
               {data.details}

@@ -23,6 +23,7 @@ import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
+import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
 import { upcomingGameDay, mostRecentPastGameDay } from "@/convex/lib/dates";
 
 type Status = "pending" | "approved" | "rejected";
@@ -58,8 +59,8 @@ const HEADER_THEME: Record<
 export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
   const data = useQuery(api.admin.adminGetLocation, { id });
   const update = useMutation(api.admin.adminUpdateLocation);
-  const setStatus = useMutation(api.admin.adminSetLocationStatus);
-  const saveRecap = useMutation(api.admin.adminSaveRecap);
+  const setStatus = useMutation(api.admin.adminSetScheduleStatus);
+  const saveRecap = useMutation(api.admin.adminSaveScheduleRecap);
   const remoderate = useMutation(api.admin.remoderateLocation);
   const del = useMutation(api.admin.deleteLocation);
   const router = useRouter();
@@ -125,8 +126,6 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
 
   const theme = HEADER_THEME[status];
   const now = new Date();
-  const upcoming = upcomingGameDay(now, data.dayOfWeek, data.startTime);
-  const mostRecent = mostRecentPastGameDay(now, data.dayOfWeek, data.startTime);
 
   return (
     <div ref={root} className="flex flex-col gap-6">
@@ -227,19 +226,30 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
             title="Override settings"
             subtitle="Edits here take effect immediately and bypass the owner."
           >
-            <SettingsForm
-              initial={{
-                name: data.name,
-                town: data.town,
-                address: data.address,
-                lat: data.lat,
-                lng: data.lng,
-                details: data.details,
-              }}
-              onSave={async (v) => {
-                await update({ id, ...v });
-              }}
-            />
+            <div className="flex flex-col gap-6">
+              <SettingsForm
+                initial={{
+                  name: data.name,
+                  town: data.town,
+                  address: data.address,
+                  lat: data.lat,
+                  lng: data.lng,
+                  details: data.details,
+                }}
+                onSave={async (v) => {
+                  await update({ id, ...v });
+                }}
+              />
+              <AdminSchedulesEditor
+                locationId={id}
+                initial={data.schedules.map((s) => ({
+                  _id: s._id,
+                  dayOfWeek: s.dayOfWeek,
+                  startTime: s.startTime,
+                  endTime: s.endTime,
+                }))}
+              />
+            </div>
           </PanelCard>
         ) : null}
 
@@ -247,16 +257,28 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
           <PanelCard
             eyebrow="This week"
             title="Override game-day status"
-            subtitle="Force the upcoming game on or off."
+            subtitle="Force each upcoming slot on or off."
           >
-            <StatusForm
-              date={upcoming}
-              isOn={true}
-              reason={undefined}
-              onSave={async ({ isOn, reason }) => {
-                await setStatus({ id, isOn, reason });
-              }}
-            />
+            <div className="flex flex-col gap-6">
+              {data.schedules.map((s) => (
+                <div
+                  key={s._id}
+                  className="rounded-2xl border border-zinc-200 bg-white/60 p-4 dark:border-zinc-800 dark:bg-zinc-950/60"
+                >
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+                    {formatDayPlural(s.dayOfWeek)} · {formatStartTime(s.startTime)}
+                  </p>
+                  <StatusForm
+                    date={upcomingGameDay(now, s.dayOfWeek, s.startTime)}
+                    isOn={true}
+                    reason={undefined}
+                    onSave={async ({ isOn, reason }) => {
+                      await setStatus({ scheduleId: s._id, isOn, reason });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </PanelCard>
         ) : null}
 
@@ -264,16 +286,164 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
           <PanelCard
             eyebrow="Last session"
             title="Override recap"
-            subtitle="Edit the recap as if you were the owner."
+            subtitle="Edit the recap for each slot as if you were the owner."
           >
-            <RecapForm
-              date={mostRecent}
-              initial={{}}
-              onSave={async (v) => {
-                await saveRecap({ id, ...v });
-              }}
-            />
+            <div className="flex flex-col gap-6">
+              {data.schedules.map((s) => (
+                <div
+                  key={s._id}
+                  className="rounded-2xl border border-zinc-200 bg-white/60 p-4 dark:border-zinc-800 dark:bg-zinc-950/60"
+                >
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+                    {formatDayPlural(s.dayOfWeek)} · {formatStartTime(s.startTime)}
+                  </p>
+                  <RecapForm
+                    date={mostRecentPastGameDay(now, s.dayOfWeek, s.startTime)}
+                    initial={{}}
+                    onSave={async (v) => {
+                      await saveRecap({ scheduleId: s._id, ...v });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </PanelCard>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+type ScheduleRow = {
+  _id?: Id<"locationSchedules">;
+  dayOfWeek: number;
+  startTime: string;
+  endTime?: string;
+};
+
+function AdminSchedulesEditor({
+  locationId,
+  initial,
+}: {
+  locationId: Id<"locations">;
+  initial: ScheduleRow[];
+}) {
+  const setSchedules = useMutation(api.admin.adminSetSchedules);
+  const [rows, setRows] = useState<ScheduleRow[]>(initial);
+  const [pending, setPending] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  async function save() {
+    setPending(true);
+    try {
+      await setSchedules({
+        id: locationId,
+        schedules: rows.map((r) => ({
+          _id: r._id,
+          dayOfWeek: r.dayOfWeek,
+          startTime: r.startTime,
+          endTime: r.endTime,
+        })),
+      });
+      setSavedAt(Date.now());
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
+        Slots
+      </p>
+      {rows.map((r, i) => (
+        <div
+          key={r._id ?? `new-${i}`}
+          className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+              Slot {i + 1}
+            </p>
+            {rows.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
+                className="rounded-full p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                aria-label={`Remove slot ${i + 1}`}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={r.dayOfWeek}
+              onChange={(e) =>
+                setRows((rs) => {
+                  const next = rs.slice();
+                  next[i] = { ...next[i], dayOfWeek: Number(e.target.value) };
+                  return next;
+                })
+              }
+              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+              {days.map((d, di) => (
+                <option key={di} value={di}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <input
+              type="time"
+              value={r.startTime}
+              onChange={(e) =>
+                setRows((rs) => {
+                  const next = rs.slice();
+                  next[i] = { ...next[i], startTime: e.target.value };
+                  return next;
+                })
+              }
+              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+            <input
+              type="time"
+              value={r.endTime ?? ""}
+              onChange={(e) =>
+                setRows((rs) => {
+                  const next = rs.slice();
+                  next[i] = {
+                    ...next[i],
+                    endTime: e.target.value || undefined,
+                  };
+                  return next;
+                })
+              }
+              placeholder="End (optional)"
+              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => setRows((rs) => [...rs, { dayOfWeek: 1, startTime: "18:00" }])}
+        className="inline-flex w-fit items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50/50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+      >
+        + Add another time
+      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={save}
+          disabled={pending}
+          className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-600/30 transition hover:scale-[1.02] disabled:opacity-50"
+        >
+          {pending ? "Saving…" : "Save slots"}
+        </button>
+        {savedAt && Date.now() - savedAt < 4000 ? (
+          <span className="text-xs text-emerald-700 dark:text-emerald-300">Saved</span>
         ) : null}
       </div>
     </div>
