@@ -20,3 +20,13 @@ export function formatDateLong(s: string) {
   const dt = new Date(Date.UTC(y, m - 1, d));
   return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
 }
+
+export function formatTimeRange(
+  start: string | null | undefined,
+  end?: string | null,
+) {
+  const s = formatStartTime(start);
+  if (!s) return "";
+  const e = end ? formatStartTime(end) : "";
+  return e ? `${s} – ${e}` : `starts ${s}`;
+}
