@@ -158,8 +158,8 @@ export const myMaintainedLocations = query({
       name: string;
       town: string;
       status: string;
-      dayOfWeek: number;
-      startTime: string;
+      dayOfWeek?: number;
+      startTime?: string;
     }> = [];
     for (const r of rows) {
       const loc = await ctx.db.get(r.locationId);

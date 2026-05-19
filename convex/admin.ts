@@ -170,6 +170,9 @@ export const adminSetLocationStatus = mutation({
     await requireAdmin(ctx);
     const loc = await ctx.db.get(id);
     if (!loc) throw new ConvexError("Location not found");
+    if (loc.dayOfWeek === undefined || loc.startTime === undefined) {
+      throw new ConvexError("Location has no schedule configured");
+    }
     const date = upcomingGameDay(new Date(), loc.dayOfWeek, loc.startTime);
     const existing = await ctx.db
       .query("gameDays")
@@ -199,6 +202,9 @@ export const adminSaveRecap = mutation({
     await requireAdmin(ctx);
     const loc = await ctx.db.get(id);
     if (!loc) throw new ConvexError("Location not found");
+    if (loc.dayOfWeek === undefined || loc.startTime === undefined) {
+      throw new ConvexError("Location has no schedule configured");
+    }
     const date = mostRecentPastGameDay(new Date(), loc.dayOfWeek, loc.startTime);
 
     const patch: Record<string, unknown> = {};

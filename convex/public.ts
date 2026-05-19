@@ -14,10 +14,10 @@ type PublicLocation = {
   address: string;
   lat: number;
   lng: number;
-  dayOfWeek: number;
-  startTime: string;
+  dayOfWeek?: number;
+  startTime?: string;
   details: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
+  thisWeek: { date: string; isOn: boolean; reason?: string } | null;
   lastSession:
     | {
         date: string;
@@ -34,13 +34,23 @@ async function buildPublicLocation(
   loc: Doc<"locations">,
   now: Date,
 ): Promise<PublicLocation> {
-  const upcomingDate = upcomingGameDay(now, loc.dayOfWeek, loc.startTime);
-  const upcomingRow = await ctx.db
-    .query("gameDays")
-    .withIndex("by_location_and_date", (q) =>
-      q.eq("locationId", loc._id).eq("date", upcomingDate),
-    )
-    .unique();
+  let thisWeek: PublicLocation["thisWeek"] = null;
+
+  if (loc.dayOfWeek !== undefined && loc.startTime !== undefined) {
+    const upcomingDate = upcomingGameDay(now, loc.dayOfWeek, loc.startTime);
+    const upcomingRow = await ctx.db
+      .query("gameDays")
+      .withIndex("by_location_and_date", (q) =>
+        q.eq("locationId", loc._id).eq("date", upcomingDate),
+      )
+      .unique();
+    const isOn = upcomingRow?.isOn ?? true;
+    thisWeek = {
+      date: upcomingDate,
+      isOn,
+      reason: isOn ? undefined : upcomingRow?.reason,
+    };
+  }
 
   const recapRows = await ctx.db
     .query("gameDays")
@@ -55,8 +65,6 @@ async function buildPublicLocation(
     r.recapNotes !== undefined;
   const lastRow = recapRows.find((r) => r.date < today && hasRecap(r));
 
-  const isOn = upcomingRow?.isOn ?? true;
-
   return {
     _id: loc._id,
     name: loc.name,
@@ -67,11 +75,7 @@ async function buildPublicLocation(
     dayOfWeek: loc.dayOfWeek,
     startTime: loc.startTime,
     details: loc.details,
-    thisWeek: {
-      date: upcomingDate,
-      isOn,
-      reason: isOn ? undefined : upcomingRow?.reason,
-    },
+    thisWeek,
     lastSession: lastRow
       ? {
           date: lastRow.date,
@@ -187,7 +191,7 @@ export const getMyLocation = query({
     let thisWeek: { date: string; isOn: boolean; reason?: string } | null = null;
     let lastSession: PublicLocation["lastSession"] = null;
 
-    if (location.status === "approved") {
+    if (location.status === "approved" && location.dayOfWeek !== undefined && location.startTime !== undefined) {
       const upcomingDate = upcomingGameDay(now, location.dayOfWeek, location.startTime);
       const upcomingRow = await ctx.db
         .query("gameDays")

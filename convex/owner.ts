@@ -35,6 +35,9 @@ export const setLocationStatus = mutation({
     if (location.status !== "approved") {
       throw new ConvexError("Location must be approved before setting weekly status.");
     }
+    if (location.dayOfWeek === undefined || location.startTime === undefined) {
+      throw new ConvexError("Location has no schedule configured");
+    }
     const date = upcomingGameDay(new Date(), location.dayOfWeek, location.startTime);
     const existing = await ctx.db
       .query("gameDays")
@@ -69,6 +72,9 @@ export const saveRecap = mutation({
     const { location } = await requireOwnerOf(ctx, id);
     if (location.status !== "approved") {
       throw new ConvexError("Location must be approved before writing a recap.");
+    }
+    if (location.dayOfWeek === undefined || location.startTime === undefined) {
+      throw new ConvexError("Location has no schedule configured");
     }
     const date = mostRecentPastGameDay(
       new Date(),
