@@ -158,19 +158,31 @@ export const myMaintainedLocations = query({
       name: string;
       town: string;
       status: string;
-      dayOfWeek?: number;
-      startTime?: string;
+      schedules: Array<{
+        _id: string;
+        dayOfWeek: number;
+        startTime: string;
+        endTime?: string;
+      }>;
     }> = [];
     for (const r of rows) {
       const loc = await ctx.db.get(r.locationId);
       if (loc) {
+        const schedules = await ctx.db
+          .query("locationSchedules")
+          .withIndex("by_location", (q) => q.eq("locationId", loc._id))
+          .collect();
         results.push({
           _id: loc._id,
           name: loc.name,
           town: loc.town,
           status: loc.status,
-          dayOfWeek: loc.dayOfWeek,
-          startTime: loc.startTime,
+          schedules: schedules.map((s) => ({
+            _id: s._id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+          })),
         });
       }
     }
