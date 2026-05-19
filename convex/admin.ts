@@ -12,7 +12,7 @@ export const pendingLocations = query({
     const rows = await ctx.db
       .query("locations")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
-      .order("asc") // oldest first by _creationTime within the index
+      .order("asc")
       .take(100);
     return Promise.all(
       rows.map(async (r) => {
@@ -64,14 +64,22 @@ export const adminGetLocation = query({
     const loc = await ctx.db.get(id);
     if (!loc) return null;
     const owner = await ctx.db.get(loc.ownerId);
+    const schedules = await ctx.db
+      .query("locationSchedules")
+      .withIndex("by_location", (q) => q.eq("locationId", id))
+      .collect();
     return {
       ...loc,
       ownerEmail: owner?.email ?? "",
+      schedules: schedules.map((s) => ({
+        _id: s._id,
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      })),
     };
   },
 });
-
-// Moderation
 
 export const approveLocation = mutation({
   args: { id: v.id("locations") },
@@ -116,30 +124,25 @@ export const deleteLocation = mutation({
   args: { id: v.id("locations") },
   handler: async (ctx, { id }) => {
     await requireAdmin(ctx);
-    // Delete all gameDays rows for this location, then the location itself.
-    // Convex mutation transaction limits handle 100s of rows easily; if a
-    // single location ever has thousands of gameDays rows this can be made
-    // batched + scheduled, but v2 doesn't need that.
     const days = await ctx.db
       .query("gameDays")
       .withIndex("by_location", (q) => q.eq("locationId", id))
       .take(1000);
-    for (const d of days) {
-      await ctx.db.delete(d._id);
-    }
+    for (const d of days) await ctx.db.delete(d._id);
+    const schedules = await ctx.db
+      .query("locationSchedules")
+      .withIndex("by_location", (q) => q.eq("locationId", id))
+      .take(1000);
+    for (const s of schedules) await ctx.db.delete(s._id);
     const maintainers = await ctx.db
       .query("locationMaintainers")
       .withIndex("by_location_and_user", (q) => q.eq("locationId", id))
       .take(1000);
-    for (const m of maintainers) {
-      await ctx.db.delete(m._id);
-    }
+    for (const m of maintainers) await ctx.db.delete(m._id);
     await ctx.db.delete(id);
     return null;
   },
 });
-
-// Admin overrides — same shape as owner mutations, gated by requireAdmin.
 
 export const adminUpdateLocation = mutation({
   args: {
@@ -149,8 +152,6 @@ export const adminUpdateLocation = mutation({
     address: v.optional(v.string()),
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),
-    dayOfWeek: v.optional(v.number()),
-    startTime: v.optional(v.string()),
     details: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...patch }) => {
@@ -160,53 +161,106 @@ export const adminUpdateLocation = mutation({
   },
 });
 
-export const adminSetLocationStatus = mutation({
+export const adminSetSchedules = mutation({
   args: {
     id: v.id("locations"),
+    schedules: v.array(
+      v.object({
+        _id: v.optional(v.id("locationSchedules")),
+        dayOfWeek: v.number(),
+        startTime: v.string(),
+        endTime: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, { id, schedules }) => {
+    await requireAdmin(ctx);
+    if (schedules.length < 1) {
+      throw new ConvexError("A location must have at least one schedule.");
+    }
+    const existing = await ctx.db
+      .query("locationSchedules")
+      .withIndex("by_location", (q) => q.eq("locationId", id))
+      .collect();
+    const incomingIds = new Set(
+      schedules.filter((s) => s._id).map((s) => s._id as string),
+    );
+    for (const e of existing) {
+      if (!incomingIds.has(e._id)) await ctx.db.delete(e._id);
+    }
+    for (const s of schedules) {
+      if (s._id) {
+        const row = await ctx.db.get(s._id);
+        if (!row || row.locationId !== id) {
+          throw new ConvexError("Schedule does not belong to this location.");
+        }
+        await ctx.db.patch(s._id, {
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        });
+      } else {
+        await ctx.db.insert("locationSchedules", {
+          locationId: id,
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        });
+      }
+    }
+    return null;
+  },
+});
+
+export const adminSetScheduleStatus = mutation({
+  args: {
+    scheduleId: v.id("locationSchedules"),
     isOn: v.boolean(),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, { id, isOn, reason }) => {
+  handler: async (ctx, { scheduleId, isOn, reason }) => {
     await requireAdmin(ctx);
-    const loc = await ctx.db.get(id);
-    if (!loc) throw new ConvexError("Location not found");
-    if (loc.dayOfWeek === undefined || loc.startTime === undefined) {
-      throw new ConvexError("Location has no schedule configured");
-    }
-    const date = upcomingGameDay(new Date(), loc.dayOfWeek, loc.startTime);
+    const schedule = await ctx.db.get(scheduleId);
+    if (!schedule) throw new ConvexError("Schedule not found");
+    const date = upcomingGameDay(new Date(), schedule.dayOfWeek, schedule.startTime);
     const existing = await ctx.db
       .query("gameDays")
-      .withIndex("by_location_and_date", (q) =>
-        q.eq("locationId", id).eq("date", date),
+      .withIndex("by_schedule_and_date", (q) =>
+        q.eq("scheduleId", scheduleId).eq("date", date),
       )
       .unique();
     const patch = { isOn, reason: isOn ? undefined : reason };
     if (existing) {
       await ctx.db.patch(existing._id, patch);
     } else {
-      await ctx.db.insert("gameDays", { locationId: id, date, ...patch });
+      await ctx.db.insert("gameDays", {
+        locationId: schedule.locationId,
+        scheduleId,
+        date,
+        ...patch,
+      });
     }
     return { date };
   },
 });
 
-export const adminSaveRecap = mutation({
+export const adminSaveScheduleRecap = mutation({
   args: {
-    id: v.id("locations"),
+    scheduleId: v.id("locationSchedules"),
     turnout: v.optional(v.union(v.number(), v.null())),
     weatherCondition: v.optional(v.union(weatherCondition, v.null())),
     weather: v.optional(v.union(v.string(), v.null())),
     recapNotes: v.optional(v.union(v.string(), v.null())),
   },
-  handler: async (ctx, { id, ...args }) => {
+  handler: async (ctx, { scheduleId, ...args }) => {
     await requireAdmin(ctx);
-    const loc = await ctx.db.get(id);
-    if (!loc) throw new ConvexError("Location not found");
-    if (loc.dayOfWeek === undefined || loc.startTime === undefined) {
-      throw new ConvexError("Location has no schedule configured");
-    }
-    const date = mostRecentPastGameDay(new Date(), loc.dayOfWeek, loc.startTime);
-
+    const schedule = await ctx.db.get(scheduleId);
+    if (!schedule) throw new ConvexError("Schedule not found");
+    const date = mostRecentPastGameDay(
+      new Date(),
+      schedule.dayOfWeek,
+      schedule.startTime,
+    );
     const patch: Record<string, unknown> = {};
     for (const key of [
       "turnout",
@@ -219,17 +273,21 @@ export const adminSaveRecap = mutation({
         patch[key] = value === null ? undefined : value;
       }
     }
-
     const existing = await ctx.db
       .query("gameDays")
-      .withIndex("by_location_and_date", (q) =>
-        q.eq("locationId", id).eq("date", date),
+      .withIndex("by_schedule_and_date", (q) =>
+        q.eq("scheduleId", scheduleId).eq("date", date),
       )
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, patch);
     } else {
-      await ctx.db.insert("gameDays", { locationId: id, date, ...patch });
+      await ctx.db.insert("gameDays", {
+        locationId: schedule.locationId,
+        scheduleId,
+        date,
+        ...patch,
+      });
     }
     return { date };
   },
