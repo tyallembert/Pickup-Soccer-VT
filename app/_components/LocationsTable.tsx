@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronRight, MapPin, SearchX } from "lucide-react";
 import { cn } from "@/app/_lib/cn";
-import { formatStartTime } from "../_lib/format";
+import { formatTimeRange } from "../_lib/format";
 import type { ListLocation } from "./LocationsList";
 
 type SortKey = "name" | "town" | "day" | "time";
@@ -19,11 +19,15 @@ export function LocationsTable({ locations }: { locations: ListLocation[] }) {
   const sorted = useMemo(() => {
     const copy = [...locations];
     copy.sort((a, b) => {
+      const aFirst = a.schedules[0];
+      const bFirst = b.schedules[0];
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
       else if (sortKey === "town") cmp = a.town.localeCompare(b.town);
-      else if (sortKey === "day") cmp = a.dayOfWeek - b.dayOfWeek;
-      else if (sortKey === "time") cmp = a.startTime.localeCompare(b.startTime);
+      else if (sortKey === "day")
+        cmp = (aFirst?.dayOfWeek ?? 99) - (bFirst?.dayOfWeek ?? 99);
+      else if (sortKey === "time")
+        cmp = (aFirst?.startTime ?? "").localeCompare(bFirst?.startTime ?? "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
@@ -118,17 +122,30 @@ export function LocationsTable({ locations }: { locations: ListLocation[] }) {
                 </span>
               </Td>
               <Td>
-                <span className="inline-flex items-center justify-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                  {DAY_SHORT[l.dayOfWeek] ?? "—"}
-                </span>
+                <div className="flex flex-wrap gap-1">
+                  {l.schedules.map((s) => (
+                    <span
+                      key={s._id}
+                      className="inline-flex items-center justify-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                    >
+                      {DAY_SHORT[s.dayOfWeek] ?? "—"}
+                    </span>
+                  ))}
+                </div>
               </Td>
               <Td>
-                <span className="font-medium tabular-nums text-zinc-700 dark:text-zinc-300">
-                  {formatStartTime(l.startTime)}
-                </span>
+                <div className="flex flex-col gap-0.5 text-xs tabular-nums text-zinc-700 dark:text-zinc-300">
+                  {l.schedules.map((s) => (
+                    <span key={s._id}>{formatTimeRange(s.startTime, s.endTime)}</span>
+                  ))}
+                </div>
               </Td>
               <Td>
-                <StatusPill on={l.thisWeek.isOn} reason={l.thisWeek.reason} />
+                <div className="flex flex-col gap-1">
+                  {l.schedules.map((s) => (
+                    <StatusPill key={s._id} on={s.thisWeek.isOn} reason={s.thisWeek.reason} />
+                  ))}
+                </div>
               </Td>
               <Td className="text-right">
                 <Link

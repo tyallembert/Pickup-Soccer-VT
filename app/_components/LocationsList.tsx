@@ -5,14 +5,19 @@ import { SearchX } from "lucide-react";
 import { MotionShell } from "./MotionShell";
 import { formatDayPlural, formatStartTime } from "../_lib/format";
 
+export type ListSchedule = {
+  _id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime?: string;
+  thisWeek: { date: string; isOn: boolean; reason?: string };
+};
+
 export type ListLocation = {
   _id: string;
   name: string;
   town: string;
-  dayOfWeek: number;
-  startTime: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
-  lastSession: { date: string; turnout?: number } | null;
+  schedules: ListSchedule[];
 };
 
 export function LocationsList({ locations, keyHash }: { locations: ListLocation[]; keyHash?: string }) {
@@ -39,23 +44,22 @@ export function LocationsList({ locations, keyHash }: { locations: ListLocation[
             <Link href={`/locations/${l._id}`} className="block">
               <p className="text-base font-semibold">{l.name}</p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">{l.town}</p>
-              <p className="mt-1 text-sm">
-                {formatDayPlural(l.dayOfWeek)} at {formatStartTime(l.startTime)}
-              </p>
-              {l.thisWeek.isOn ? (
-                <p className="mt-2 text-xs uppercase tracking-wide text-green-700 dark:text-green-400">
-                  ON this {l.thisWeek.date}
-                </p>
-              ) : (
-                <p className="mt-2 text-xs uppercase tracking-wide text-red-700 dark:text-red-400">
-                  OFF — {l.thisWeek.reason ?? "cancelled"}
-                </p>
+              {l.schedules[0] && (
+                <>
+                  <p className="mt-1 text-sm">
+                    {formatDayPlural(l.schedules[0].dayOfWeek)} at {formatStartTime(l.schedules[0].startTime)}
+                  </p>
+                  {l.schedules[0].thisWeek.isOn ? (
+                    <p className="mt-2 text-xs uppercase tracking-wide text-green-700 dark:text-green-400">
+                      ON this {l.schedules[0].thisWeek.date}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs uppercase tracking-wide text-red-700 dark:text-red-400">
+                      OFF — {l.schedules[0].thisWeek.reason ?? "cancelled"}
+                    </p>
+                  )}
+                </>
               )}
-              {l.lastSession?.turnout !== undefined ? (
-                <p className="mt-1 text-xs text-zinc-500">
-                  Last: {l.lastSession.turnout} players
-                </p>
-              ) : null}
             </Link>
           </li>
         ))}
