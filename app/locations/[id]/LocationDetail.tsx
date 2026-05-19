@@ -8,7 +8,6 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import {
   ArrowLeft,
-  CalendarClock,
   CalendarDays,
   Clock,
   Cloud,
@@ -30,7 +29,7 @@ import { MaintainCTA } from "@/app/_components/MaintainCTA";
 import {
   formatDateLong,
   formatDayPlural,
-  formatStartTime,
+  formatTimeRange,
 } from "@/app/_lib/format";
 
 type Condition = "sunny" | "cloudy" | "rainy" | "snowy" | "windy" | "cold";
@@ -82,7 +81,7 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
       location_id: id,
       location_name: data.name,
       town: data.town,
-      game_on: data.thisWeek.isOn,
+      schedule_count: data.schedules.length,
     });
   }, [data, id]);
 
@@ -119,19 +118,27 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
     );
   }
 
-  const isOn = data.thisWeek.isOn;
-  const heroFrom = isOn ? "from-emerald-700" : "from-amber-700";
-  const heroVia = isOn ? "via-emerald-600" : "via-orange-600";
-  const heroTo = isOn ? "to-emerald-500" : "to-amber-500";
-  const heroShadow = isOn
-    ? "shadow-[0_20px_60px_rgba(16,185,129,0.20)]"
-    : "shadow-[0_20px_60px_rgba(245,158,11,0.22)]";
-  const rel = relativeDay(data.thisWeek.date);
+  const upcomingSchedules = data.schedules.slice().sort(
+    (a, b) =>
+      a.thisWeek.date.localeCompare(b.thisWeek.date) ||
+      a.startTime.localeCompare(b.startTime),
+  );
+  const allOff = upcomingSchedules.every((s) => !s.thisWeek.isOn);
+  const anyOff = upcomingSchedules.some((s) => !s.thisWeek.isOn);
+  const heroFrom = allOff ? "from-amber-700" : "from-emerald-700";
+  const heroVia = allOff ? "via-orange-600" : "via-emerald-600";
+  const heroTo = allOff ? "to-amber-500" : "to-emerald-500";
+  const heroShadow = allOff
+    ? "shadow-[0_20px_60px_rgba(245,158,11,0.22)]"
+    : "shadow-[0_20px_60px_rgba(16,185,129,0.20)]";
+  const heroPillLabel = allOff
+    ? "All cancelled this week"
+    : anyOff
+      ? "Some cancelled this week"
+      : "Game on this week";
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     data.address,
   )}`;
-  const condition = data.lastSession?.weatherCondition as Condition | undefined;
-  const weatherMeta = condition ? WEATHER_META[condition] : null;
 
   return (
     <main
@@ -174,33 +181,17 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
-              {isOn ? (
+              {allOff ? (
+                <XCircle className="h-3.5 w-3.5" />
+              ) : (
                 <span className="relative inline-flex h-2 w-2 items-center justify-center">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
                 </span>
-              ) : (
-                <XCircle className="h-3.5 w-3.5" />
               )}
-              {isOn ? "Game on this week" : "Game off this week"}
-            </span>
-
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur">
-              <CalendarClock className="h-3.5 w-3.5" />
-              {formatDateLong(data.thisWeek.date)}
-            </span>
-
-            <span className="inline-flex items-center rounded-full bg-white/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-              {rel}
+              {heroPillLabel}
             </span>
           </div>
-
-          {!isOn && data.thisWeek.reason ? (
-            <p className="mt-3 max-w-prose rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white/95 backdrop-blur">
-              <strong className="font-semibold">Reason:</strong>{" "}
-              {data.thisWeek.reason}
-            </p>
-          ) : null}
         </div>
       </header>
 
@@ -214,18 +205,49 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
 
       {/* When + Where */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <article className="loc-anim flex flex-col gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <article className="loc-anim flex flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
             When
           </p>
-          <p className="flex items-center gap-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-            <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            {formatDayPlural(data.dayOfWeek)}
-          </p>
-          <p className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            {formatStartTime(data.startTime)}
-          </p>
+          <ul className="flex flex-col gap-3">
+            {upcomingSchedules.map((s) => {
+              const rel = relativeDay(s.thisWeek.date);
+              return (
+                <li
+                  key={s._id}
+                  className="rounded-xl border border-zinc-100 px-3 py-2.5 dark:border-zinc-800"
+                >
+                  <p className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-100">
+                    <CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    {formatDayPlural(s.dayOfWeek)}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    {formatTimeRange(s.startTime, s.endTime)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
+                        s.thisWeek.isOn
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                          : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                      }`}
+                    >
+                      {s.thisWeek.isOn ? "On" : "Off"} · {rel}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {formatDateLong(s.thisWeek.date)}
+                    </span>
+                  </div>
+                  {!s.thisWeek.isOn && s.thisWeek.reason ? (
+                    <p className="mt-2 text-xs italic text-rose-700 dark:text-rose-300">
+                      {s.thisWeek.reason}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         </article>
 
         <article className="loc-anim flex flex-col gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -293,60 +315,55 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
         </section>
       ) : null}
 
-      {/* Last session */}
-      {data.lastSession ? (
+      {/* Last sessions */}
+      {upcomingSchedules.some((s) => s.lastSession) ? (
         <section className="loc-anim overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <header className="border-b border-zinc-100 px-5 py-3 dark:border-zinc-900">
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
-              Last session
+              Last sessions
             </p>
-            <h2 className="mt-0.5 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {formatDateLong(data.lastSession.date)}
-            </h2>
           </header>
-          <div className="grid grid-cols-1 gap-5 px-5 py-4 sm:grid-cols-[auto_1fr]">
-            <div className="flex flex-col gap-3">
-              {data.lastSession.turnout !== undefined ? (
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
-                  <Users className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
-                  <div>
-                    <p className="text-2xl font-bold leading-none text-emerald-900 dark:text-emerald-100">
-                      {data.lastSession.turnout}
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+            {upcomingSchedules
+              .filter((s) => s.lastSession)
+              .map((s) => {
+                const last = s.lastSession!;
+                const condition = last.weatherCondition as Condition | undefined;
+                const weatherMeta = condition ? WEATHER_META[condition] : null;
+                return (
+                  <li key={s._id} className="px-5 py-4">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {formatDayPlural(s.dayOfWeek)} ·{" "}
+                      {formatTimeRange(s.startTime, s.endTime)}
                     </p>
-                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                      Players
+                    <p className="text-xs text-zinc-500">
+                      {formatDateLong(last.date)}
                     </p>
-                  </div>
-                </div>
-              ) : null}
-              {weatherMeta ? (
-                <div
-                  className={`inline-flex w-fit items-center gap-2 rounded-full bg-gradient-to-br ${weatherMeta.tone} px-3 py-1.5 text-xs font-bold text-white shadow-sm`}
-                >
-                  <weatherMeta.Icon className="h-3.5 w-3.5" />
-                  {weatherMeta.label}
-                  {data.lastSession.weather ? (
-                    <span className="font-medium opacity-90">
-                      · {data.lastSession.weather}
-                    </span>
-                  ) : null}
-                </div>
-              ) : data.lastSession.weather ? (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {data.lastSession.weather}
-                </p>
-              ) : null}
-            </div>
-            {data.lastSession.recapNotes ? (
-              <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                {data.lastSession.recapNotes}
-              </p>
-            ) : (
-              <p className="text-sm italic text-zinc-500">
-                No recap notes posted for this session.
-              </p>
-            )}
-          </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {last.turnout !== undefined ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                          <Users className="h-3 w-3" />
+                          {last.turnout} players
+                        </span>
+                      ) : null}
+                      {weatherMeta ? (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-br ${weatherMeta.tone} px-2.5 py-0.5 text-[11px] font-bold text-white`}
+                        >
+                          <weatherMeta.Icon className="h-3 w-3" />
+                          {weatherMeta.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    {last.recapNotes ? (
+                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                        {last.recapNotes}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+          </ul>
         </section>
       ) : null}
     </main>
