@@ -25,9 +25,12 @@ export default async function Image({
 
   const title = loc ? loc.name : "Pickup Soccer Field";
   const town = loc ? `${loc.town}, Vermont` : "Vermont";
-  const dayLine = loc
-    ? `${formatDayPlural(loc.dayOfWeek)} · ${formatStartTime(loc.startTime)}`
-    : "Weekly pickup soccer";
+  const dayLine =
+    loc && loc.schedules.length > 0
+      ? loc.schedules
+          .map((s) => `${formatDayPlural(s.dayOfWeek)} · ${formatStartTime(s.startTime)}`)
+          .join("  |  ")
+      : "Weekly pickup soccer";
 
   return new ImageResponse(
     (

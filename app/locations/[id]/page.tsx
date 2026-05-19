@@ -36,8 +36,9 @@ export async function generateMetadata({
     };
   }
 
-  const day = formatDayPlural(loc.dayOfWeek);
-  const time = formatStartTime(loc.startTime);
+  const primarySchedule = loc.schedules[0];
+  const day = primarySchedule ? formatDayPlural(primarySchedule.dayOfWeek) : "weekly";
+  const time = primarySchedule ? formatStartTime(primarySchedule.startTime) : "";
   const title = `${loc.name} — Pickup Soccer in ${loc.town}, VT`;
   const description = `Free pickup soccer ${day.toLowerCase()} at ${time} in ${loc.town}, Vermont. ${loc.name} — ${loc.address}. ${loc.details ? loc.details.slice(0, 140) : ""}`.trim();
   const path = `/locations/${id}`;
@@ -117,47 +118,51 @@ export default async function LocationPage({
         areaServed: { "@type": "State", name: "Vermont" },
         isAccessibleForFree: true,
         publicAccess: true,
-        event: {
-          "@type": "SportsEvent",
-          name: `Pickup soccer at ${loc.name}`,
-          eventSchedule: {
-            "@type": "Schedule",
-            repeatFrequency: "P1W",
-            byDay: [
-              [
-                "https://schema.org/Sunday",
-                "https://schema.org/Monday",
-                "https://schema.org/Tuesday",
-                "https://schema.org/Wednesday",
-                "https://schema.org/Thursday",
-                "https://schema.org/Friday",
-                "https://schema.org/Saturday",
-              ][loc.dayOfWeek],
-            ],
-            startTime: loc.startTime,
-          },
-          eventStatus: loc.thisWeek?.isOn
-            ? "https://schema.org/EventScheduled"
-            : "https://schema.org/EventCancelled",
-          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-          location: {
-            "@type": "Place",
-            name: loc.name,
-            address: {
-              "@type": "PostalAddress",
-              streetAddress: loc.address,
-              addressLocality: loc.town,
-              addressRegion: "VT",
-              addressCountry: "US",
-            },
-          },
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD",
-            availability: "https://schema.org/InStock",
-          },
-        },
+        ...(loc.schedules.length > 0
+          ? {
+              event: {
+                "@type": "SportsEvent",
+                name: `Pickup soccer at ${loc.name}`,
+                eventSchedule: {
+                  "@type": "Schedule",
+                  repeatFrequency: "P1W",
+                  byDay: loc.schedules.map((s) =>
+                    [
+                      "https://schema.org/Sunday",
+                      "https://schema.org/Monday",
+                      "https://schema.org/Tuesday",
+                      "https://schema.org/Wednesday",
+                      "https://schema.org/Thursday",
+                      "https://schema.org/Friday",
+                      "https://schema.org/Saturday",
+                    ][s.dayOfWeek],
+                  ),
+                  startTime: loc.schedules[0].startTime,
+                },
+                eventStatus: loc.schedules[0].thisWeek?.isOn
+                  ? "https://schema.org/EventScheduled"
+                  : "https://schema.org/EventCancelled",
+                eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+                location: {
+                  "@type": "Place",
+                  name: loc.name,
+                  address: {
+                    "@type": "PostalAddress",
+                    streetAddress: loc.address,
+                    addressLocality: loc.town,
+                    addressRegion: "VT",
+                    addressCountry: "US",
+                  },
+                },
+                offers: {
+                  "@type": "Offer",
+                  price: "0",
+                  priceCurrency: "USD",
+                  availability: "https://schema.org/InStock",
+                },
+              },
+            }
+          : {}),
       }
     : null;
 

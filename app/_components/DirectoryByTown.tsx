@@ -6,8 +6,7 @@ type DirectoryLocation = {
   _id: string;
   name: string;
   town: string;
-  dayOfWeek: number;
-  startTime: string;
+  schedules: { _id: string; dayOfWeek: number; startTime: string }[];
 };
 
 export function DirectoryByTown({
@@ -80,9 +79,11 @@ export function DirectoryByTown({
                         {l.name}
                       </span>
                       <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-                        {formatDayPlural(l.dayOfWeek)}
-                        {" · "}
-                        {formatStartTime(l.startTime)}
+                        {l.schedules.length > 0
+                          ? l.schedules
+                              .map((s) => `${formatDayPlural(s.dayOfWeek)} · ${formatStartTime(s.startTime)}`)
+                              .join(", ")
+                          : null}
                       </span>
                     </Link>
                   </li>

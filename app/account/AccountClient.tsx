@@ -186,8 +186,8 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
-                      {typeof l.dayOfWeek === "number" && l.startTime
-                        ? ` · ${formatDayPlural(l.dayOfWeek)} at ${formatStartTime(l.startTime)}`
+                      {l.schedules[0]
+                        ? ` · ${formatDayPlural(l.schedules[0].dayOfWeek)} at ${formatStartTime(l.schedules[0].startTime)}`
                         : null}
                     </p>
                   </div>
@@ -235,8 +235,8 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
-                      {typeof l.dayOfWeek === "number" && l.startTime
-                        ? ` · ${formatDayPlural(l.dayOfWeek)} at ${formatStartTime(l.startTime)}`
+                      {l.schedules[0]
+                        ? ` · ${formatDayPlural(l.schedules[0].dayOfWeek)} at ${formatStartTime(l.schedules[0].startTime)}`
                         : null}
                     </p>
                   </div>
