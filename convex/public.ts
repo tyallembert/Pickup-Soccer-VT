@@ -7,17 +7,12 @@ import type { QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth, requireOwnerOf } from "./lib/auth";
 
-type PublicLocation = {
-  _id: Id<"locations">;
-  name: string;
-  town: string;
-  address: string;
-  lat: number;
-  lng: number;
-  dayOfWeek?: number;
-  startTime?: string;
-  details: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string } | null;
+type ScheduleView = {
+  _id: Id<"locationSchedules">;
+  dayOfWeek: number;
+  startTime: string;
+  endTime?: string;
+  thisWeek: { date: string; isOn: boolean; reason?: string };
   lastSession:
     | {
         date: string;
@@ -29,42 +24,88 @@ type PublicLocation = {
     | null;
 };
 
+type PublicLocation = {
+  _id: Id<"locations">;
+  name: string;
+  town: string;
+  address: string;
+  lat: number;
+  lng: number;
+  details: string;
+  schedules: ScheduleView[];
+};
+
+function hasRecap(r: Doc<"gameDays">): boolean {
+  return (
+    r.turnout !== undefined ||
+    r.weatherCondition !== undefined ||
+    r.weather !== undefined ||
+    r.recapNotes !== undefined
+  );
+}
+
+async function buildSchedulesForLocation(
+  ctx: QueryCtx,
+  locationId: Id<"locations">,
+  now: Date,
+): Promise<ScheduleView[]> {
+  const schedules = await ctx.db
+    .query("locationSchedules")
+    .withIndex("by_location", (q) => q.eq("locationId", locationId))
+    .collect();
+
+  const recentRows = await ctx.db
+    .query("gameDays")
+    .withIndex("by_location", (q) => q.eq("locationId", locationId))
+    .order("desc")
+    .take(50);
+  const today = todayInTimezone(now);
+
+  return Promise.all(
+    schedules.map(async (s) => {
+      const upcomingDate = upcomingGameDay(now, s.dayOfWeek, s.startTime);
+      const upcomingRow = await ctx.db
+        .query("gameDays")
+        .withIndex("by_schedule_and_date", (q) =>
+          q.eq("scheduleId", s._id).eq("date", upcomingDate),
+        )
+        .unique();
+
+      const lastRow = recentRows.find(
+        (r) => r.scheduleId === s._id && r.date < today && hasRecap(r),
+      );
+      const isOn = upcomingRow?.isOn ?? true;
+
+      return {
+        _id: s._id,
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        thisWeek: {
+          date: upcomingDate,
+          isOn,
+          reason: isOn ? undefined : upcomingRow?.reason,
+        },
+        lastSession: lastRow
+          ? {
+              date: lastRow.date,
+              turnout: lastRow.turnout,
+              weatherCondition: lastRow.weatherCondition,
+              weather: lastRow.weather,
+              recapNotes: lastRow.recapNotes,
+            }
+          : null,
+      };
+    }),
+  );
+}
+
 async function buildPublicLocation(
   ctx: QueryCtx,
   loc: Doc<"locations">,
   now: Date,
 ): Promise<PublicLocation> {
-  let thisWeek: PublicLocation["thisWeek"] = null;
-
-  if (loc.dayOfWeek !== undefined && loc.startTime !== undefined) {
-    const upcomingDate = upcomingGameDay(now, loc.dayOfWeek, loc.startTime);
-    const upcomingRow = await ctx.db
-      .query("gameDays")
-      .withIndex("by_location_and_date", (q) =>
-        q.eq("locationId", loc._id).eq("date", upcomingDate),
-      )
-      .unique();
-    const isOn = upcomingRow?.isOn ?? true;
-    thisWeek = {
-      date: upcomingDate,
-      isOn,
-      reason: isOn ? undefined : upcomingRow?.reason,
-    };
-  }
-
-  const recapRows = await ctx.db
-    .query("gameDays")
-    .withIndex("by_location", (q) => q.eq("locationId", loc._id))
-    .order("desc")
-    .take(50);
-  const today = todayInTimezone(now);
-  const hasRecap = (r: Doc<"gameDays">) =>
-    r.turnout !== undefined ||
-    r.weatherCondition !== undefined ||
-    r.weather !== undefined ||
-    r.recapNotes !== undefined;
-  const lastRow = recapRows.find((r) => r.date < today && hasRecap(r));
-
+  const schedules = await buildSchedulesForLocation(ctx, loc._id, now);
   return {
     _id: loc._id,
     name: loc.name,
@@ -72,19 +113,8 @@ async function buildPublicLocation(
     address: loc.address,
     lat: loc.lat,
     lng: loc.lng,
-    dayOfWeek: loc.dayOfWeek,
-    startTime: loc.startTime,
     details: loc.details,
-    thisWeek,
-    lastSession: lastRow
-      ? {
-          date: lastRow.date,
-          turnout: lastRow.turnout,
-          weatherCondition: lastRow.weatherCondition,
-          weather: lastRow.weather,
-          recapNotes: lastRow.recapNotes,
-        }
-      : null,
+    schedules,
   };
 }
 
@@ -111,10 +141,6 @@ export const listLocations = query({
         .take(200);
     }
 
-    if (args.dayOfWeek !== undefined) {
-      rows = rows.filter((r) => r.dayOfWeek === args.dayOfWeek);
-    }
-
     if (args.search) {
       const needle = args.search.toLowerCase();
       rows = rows.filter(
@@ -124,7 +150,16 @@ export const listLocations = query({
       );
     }
 
-    return Promise.all(rows.map((r) => buildPublicLocation(ctx, r, now)));
+    const built = await Promise.all(
+      rows.map((r) => buildPublicLocation(ctx, r, now)),
+    );
+
+    if (args.dayOfWeek !== undefined) {
+      return built.filter((l) =>
+        l.schedules.some((s) => s.dayOfWeek === args.dayOfWeek),
+      );
+    }
+    return built;
   },
 });
 
@@ -170,16 +205,28 @@ export const myLocations = query({
       .query("locations")
       .withIndex("by_owner_and_status", (q) => q.eq("ownerId", user._id))
       .take(50);
-    return rows.map((r) => ({
-      _id: r._id,
-      name: r.name,
-      town: r.town,
-      status: r.status,
-      rejectionReason: r.rejectionReason,
-      submittedAt: r.submittedAt,
-      dayOfWeek: r.dayOfWeek,
-      startTime: r.startTime,
-    }));
+    return Promise.all(
+      rows.map(async (r) => {
+        const schedules = await ctx.db
+          .query("locationSchedules")
+          .withIndex("by_location", (q) => q.eq("locationId", r._id))
+          .collect();
+        return {
+          _id: r._id,
+          name: r.name,
+          town: r.town,
+          status: r.status,
+          rejectionReason: r.rejectionReason,
+          submittedAt: r.submittedAt,
+          schedules: schedules.map((s) => ({
+            _id: s._id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+          })),
+        };
+      }),
+    );
   },
 });
 
@@ -188,49 +235,25 @@ export const getMyLocation = query({
   handler: async (ctx, { id }) => {
     const { location, role } = await requireOwnerOf(ctx, id);
     const now = new Date();
-    let thisWeek: { date: string; isOn: boolean; reason?: string } | null = null;
-    let lastSession: PublicLocation["lastSession"] = null;
-
-    if (location.status === "approved" && location.dayOfWeek !== undefined && location.startTime !== undefined) {
-      const upcomingDate = upcomingGameDay(now, location.dayOfWeek, location.startTime);
-      const upcomingRow = await ctx.db
-        .query("gameDays")
-        .withIndex("by_location_and_date", (q) =>
-          q.eq("locationId", location._id).eq("date", upcomingDate),
-        )
-        .unique();
-      const isOn = upcomingRow?.isOn ?? true;
-      thisWeek = { date: upcomingDate, isOn, reason: isOn ? undefined : upcomingRow?.reason };
-
-      const recapRows = await ctx.db
-        .query("gameDays")
-        .withIndex("by_location", (q) => q.eq("locationId", location._id))
-        .order("desc")
-        .take(50);
-      const today = todayInTimezone(now);
-      const lastRow = recapRows.find(
-        (r) =>
-          r.date < today &&
-          (r.turnout !== undefined ||
-            r.weatherCondition !== undefined ||
-            r.weather !== undefined ||
-            r.recapNotes !== undefined),
-      );
-      if (lastRow) {
-        lastSession = {
-          date: lastRow.date,
-          turnout: lastRow.turnout,
-          weatherCondition: lastRow.weatherCondition,
-          weather: lastRow.weather,
-          recapNotes: lastRow.recapNotes,
-        };
-      }
-    }
-
+    const schedules =
+      location.status === "approved"
+        ? await buildSchedulesForLocation(ctx, location._id, now)
+        : (
+            await ctx.db
+              .query("locationSchedules")
+              .withIndex("by_location", (q) => q.eq("locationId", location._id))
+              .collect()
+          ).map<ScheduleView>((s) => ({
+            _id: s._id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            thisWeek: { date: "", isOn: true },
+            lastSession: null,
+          }));
     return {
       ...location,
-      thisWeek,
-      lastSession,
+      schedules,
       viewerRole: role,
       viewerIsPrimaryOwner: role === "owner" || role === "admin",
     };
