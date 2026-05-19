@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { cn } from "@/app/_lib/cn";
 import { LocationPin } from "./LocationPin";
 import { geocodeAddress } from "../_lib/geocode";
 
@@ -12,12 +11,8 @@ export type SettingsFormValues = {
   address: string;
   lat: number;
   lng: number;
-  dayOfWeek: number;
-  startTime: string;
   details: string;
 };
-
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const inputCls =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-emerald-900";
@@ -90,43 +85,6 @@ export function SettingsForm({
           Drag the pin or click the map to fine-tune the spot.
         </p>
       </div>
-
-      <div>
-        <p className="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Day of week
-        </p>
-        <div className="grid grid-cols-7 gap-2">
-          {DAY_LABELS.map((d, i) => {
-            const active = v.dayOfWeek === i;
-            return (
-              <button
-                type="button"
-                key={d}
-                onClick={() => update({ dayOfWeek: i })}
-                className={cn(
-                  "rounded-lg border py-2 text-sm font-semibold transition",
-                  active
-                    ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_4px_12px_rgba(16,185,129,0.35)]"
-                    : "border-zinc-300 bg-white text-zinc-700 hover:border-emerald-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200",
-                )}
-                aria-pressed={active}
-                aria-label={d}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <Field label="Start time">
-        <input
-          type="time"
-          value={v.startTime}
-          onChange={(e) => update({ startTime: e.target.value })}
-          className={inputCls}
-        />
-      </Field>
 
       <Field label="Details" hint="Style of play, donation, gear, parking, etc. Markdown OK.">
         <textarea

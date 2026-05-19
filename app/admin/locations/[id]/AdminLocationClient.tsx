@@ -234,8 +234,6 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
                 address: data.address,
                 lat: data.lat,
                 lng: data.lng,
-                dayOfWeek: data.dayOfWeek,
-                startTime: data.startTime,
                 details: data.details,
               }}
               onSave={async (v) => {
