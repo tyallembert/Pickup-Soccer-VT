@@ -12,14 +12,22 @@ export const submitLocation = mutation({
     address: v.string(),
     lat: v.number(),
     lng: v.number(),
-    dayOfWeek: v.number(),
-    startTime: v.string(),
     details: v.string(),
+    schedules: v.array(
+      v.object({
+        dayOfWeek: v.number(),
+        startTime: v.string(),
+        endTime: v.optional(v.string()),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
 
-    // Rate-limit: count pending + rejected submissions for this user.
+    if (args.schedules.length < 1) {
+      throw new ConvexError("A location must have at least one schedule.");
+    }
+
     const pending = await ctx.db
       .query("locations")
       .withIndex("by_owner_and_status", (q) =>
@@ -38,12 +46,21 @@ export const submitLocation = mutation({
       );
     }
 
+    const { schedules, ...locArgs } = args;
     const id = await ctx.db.insert("locations", {
-      ...args,
+      ...locArgs,
       ownerId: user._id,
       status: "pending",
       submittedAt: Date.now(),
     });
+    for (const s of schedules) {
+      await ctx.db.insert("locationSchedules", {
+        locationId: id,
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      });
+    }
     return id;
   },
 });
