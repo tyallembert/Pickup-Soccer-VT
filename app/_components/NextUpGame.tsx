@@ -17,30 +17,58 @@ import {
   formatStartTime,
 } from "../_lib/format";
 
+export type NextSchedule = {
+  _id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime?: string;
+  thisWeek: { date: string; isOn: boolean; reason?: string };
+};
+
 export type NextLocation = {
   _id: string;
   name: string;
   town: string;
   details: string;
-  dayOfWeek: number;
-  startTime: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
+  schedules: NextSchedule[];
 };
 
-function pickNext(locations: NextLocation[] | undefined): NextLocation | null {
+type Pick = {
+  locationId: string;
+  name: string;
+  town: string;
+  details: string;
+  schedule: NextSchedule;
+};
+
+function pickNext(locations: NextLocation[] | undefined): Pick | null {
   if (!locations || locations.length === 0) return null;
-  return [...locations].sort((a, b) => {
-    if (a.thisWeek.date !== b.thisWeek.date) {
-      return a.thisWeek.date < b.thisWeek.date ? -1 : 1;
+  const flat: Pick[] = [];
+  for (const l of locations) {
+    for (const s of l.schedules) {
+      flat.push({
+        locationId: l._id,
+        name: l.name,
+        town: l.town,
+        details: l.details,
+        schedule: s,
+      });
     }
-    if (a.startTime !== b.startTime) {
-      return a.startTime < b.startTime ? -1 : 1;
+  }
+  if (flat.length === 0) return null;
+  flat.sort((a, b) => {
+    if (a.schedule.thisWeek.date !== b.schedule.thisWeek.date) {
+      return a.schedule.thisWeek.date < b.schedule.thisWeek.date ? -1 : 1;
     }
-    if (a.thisWeek.isOn !== b.thisWeek.isOn) {
-      return a.thisWeek.isOn ? -1 : 1;
+    if (a.schedule.startTime !== b.schedule.startTime) {
+      return a.schedule.startTime < b.schedule.startTime ? -1 : 1;
+    }
+    if (a.schedule.thisWeek.isOn !== b.schedule.thisWeek.isOn) {
+      return a.schedule.thisWeek.isOn ? -1 : 1;
     }
     return a.name.localeCompare(b.name);
-  })[0];
+  });
+  return flat[0];
 }
 
 function todayString(): string {
@@ -83,7 +111,7 @@ export function NextUpGame({
         stagger: 0.08,
       });
     },
-    { scope: root, dependencies: [next?._id, locations === undefined] },
+    { scope: root, dependencies: [next?.schedule._id, locations === undefined] },
   );
 
   if (locations === undefined) {
@@ -115,11 +143,11 @@ export function NextUpGame({
     );
   }
 
-  const rel = relativeDay(next.thisWeek.date);
-  const time = formatStartTime(next.startTime);
-  const dayName = formatDayLong(next.dayOfWeek);
-  const isOff = !next.thisWeek.isOn;
-  const reason = next.thisWeek.reason?.trim();
+  const rel = relativeDay(next.schedule.thisWeek.date);
+  const time = formatStartTime(next.schedule.startTime);
+  const dayName = formatDayLong(next.schedule.dayOfWeek);
+  const isOff = !next.schedule.thisWeek.isOn;
+  const reason = next.schedule.thisWeek.reason?.trim();
 
   const theme = isOff
     ? {
@@ -150,7 +178,7 @@ export function NextUpGame({
   return (
     <section ref={root} className="px-6 pt-8">
       <Link
-        href={`/locations/${next._id}`}
+        href={`/locations/${next.locationId}`}
         className={`next-up-anim group block overflow-hidden rounded-2xl border ${theme.cardBorder} bg-white transition hover:-translate-y-0.5 ${theme.cardShadow} dark:bg-zinc-950`}
       >
         <div className="flex flex-col items-stretch sm:flex-row">
@@ -210,7 +238,7 @@ export function NextUpGame({
               <span className="text-zinc-300 dark:text-zinc-700">·</span>
               <span className="inline-flex items-center gap-1">
                 <CalendarClock className={`h-3.5 w-3.5 ${theme.accent}`} />
-                {formatDateLong(next.thisWeek.date)}
+                {formatDateLong(next.schedule.thisWeek.date)}
               </span>
             </p>
             {isOff ? (
