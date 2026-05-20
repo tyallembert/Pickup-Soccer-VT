@@ -32,9 +32,11 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { LocationPin } from "@/app/_components/LocationPin";
+import { DayPicker } from "@/app/_components/DayPicker";
 import { geocodeAddress } from "@/app/_lib/geocode";
 import { VERMONT_TOWNS } from "@/app/_lib/vermont-towns";
 import { cn } from "@/app/_lib/cn";
+import { Input } from "@/app/_components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -964,15 +966,6 @@ function WhereStep() {
 
 function WhenStep() {
   const { draft, update } = useSubmitForm();
-  const days = [
-    { short: "S", full: "Sun" },
-    { short: "M", full: "Mon" },
-    { short: "T", full: "Tue" },
-    { short: "W", full: "Wed" },
-    { short: "T", full: "Thu" },
-    { short: "F", full: "Fri" },
-    { short: "S", full: "Sat" },
-  ];
 
   const patchRow = (i: number, patch: Partial<ScheduleDraft>) => {
     const next = draft.schedules.slice();
@@ -1016,53 +1009,28 @@ function WhenStep() {
               <span className="font-medium text-zinc-800 dark:text-zinc-200">
                 Day of week
               </span>
-              <div
-                role="radiogroup"
-                aria-label={`Day of week for slot ${i + 1}`}
-                className="inline-flex w-full items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-              >
-                {days.map((d, di) => {
-                  const active = row.dayOfWeek === di;
-                  return (
-                    <button
-                      key={di}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => patchRow(i, { dayOfWeek: di })}
-                      title={d.full}
-                      className={cn(
-                        "flex h-9 flex-1 select-none items-center justify-center rounded-full text-xs font-bold transition",
-                        active
-                          ? "bg-emerald-600 text-white shadow-[0_3px_10px_rgba(16,185,129,0.45)]"
-                          : "text-zinc-600 hover:bg-emerald-50 hover:text-emerald-800 dark:text-zinc-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
-                      )}
-                    >
-                      <span className="sm:hidden">{d.short}</span>
-                      <span className="hidden sm:inline">{d.full}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <DayPicker
+                value={row.dayOfWeek}
+                onChange={(v) => patchRow(i, { dayOfWeek: v })}
+                ariaLabel={`Day of week for slot ${i + 1}`}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start time">
-                <input
+                <Input
                   type="time"
                   value={row.startTime}
                   onChange={(e) => patchRow(i, { startTime: e.target.value })}
-                  className={inputCls}
                 />
               </Field>
               <Field label="End time (optional)">
-                <input
+                <Input
                   type="time"
                   value={row.endTime ?? ""}
                   onChange={(e) =>
                     patchRow(i, { endTime: e.target.value || undefined })
                   }
-                  className={inputCls}
                 />
               </Field>
             </div>

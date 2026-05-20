@@ -16,10 +16,7 @@ import {
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/app/_lib/cn";
 import { Input } from "@/app/_components/ui/input";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/app/_components/ui/toggle-group";
+import { DayPicker } from "@/app/_components/DayPicker";
 import {
   Tooltip,
   TooltipContent,
@@ -33,16 +30,6 @@ export type ScheduleRow = {
   startTime: string;
   endTime?: string;
 };
-
-const DAYS = [
-  { v: 0, short: "S", long: "Sun" },
-  { v: 1, short: "M", long: "Mon" },
-  { v: 2, short: "T", long: "Tue" },
-  { v: 3, short: "W", long: "Wed" },
-  { v: 4, short: "T", long: "Thu" },
-  { v: 5, short: "F", long: "Fri" },
-  { v: 6, short: "S", long: "Sat" },
-] as const;
 
 function rowKey(r: ScheduleRow, fallback: number): string {
   return r._id ?? `new-${fallback}`;
@@ -335,29 +322,12 @@ function FixtureCard({
           )}
         </div>
 
-        {/* Day selector — matches submit form + filter day pills */}
-        <ToggleGroup
-          type="single"
-          value={String(row.dayOfWeek)}
-          onValueChange={(v) => {
-            if (v) onPatch({ dayOfWeek: Number(v) });
-          }}
-          spacing={1}
-          aria-label={`Day for slot ${slotNumber}`}
-          className="grid w-full grid-cols-7 gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-        >
-          {DAYS.map((d) => (
-            <ToggleGroupItem
-              key={d.v}
-              value={String(d.v)}
-              title={d.long}
-              className="h-9 w-full rounded-full px-0 text-xs font-bold"
-            >
-              <span className="sm:hidden">{d.short}</span>
-              <span className="hidden sm:inline">{d.long}</span>
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {/* Day selector — single indicator slides between days with a bounce */}
+        <DayPicker
+          value={row.dayOfWeek}
+          onChange={(v) => onPatch({ dayOfWeek: v })}
+          ariaLabel={`Day for slot ${slotNumber}`}
+        />
 
         {/* Time block */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
