@@ -335,7 +335,7 @@ function FixtureCard({
           )}
         </div>
 
-        {/* Day selector */}
+        {/* Day selector — matches submit form + filter day pills */}
         <ToggleGroup
           type="single"
           value={String(row.dayOfWeek)}
@@ -344,16 +344,17 @@ function FixtureCard({
           }}
           spacing={1}
           aria-label={`Day for slot ${slotNumber}`}
-          className="grid w-full grid-cols-7 gap-0.5 rounded-full border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-800 dark:bg-zinc-900/60"
+          className="grid w-full grid-cols-7 gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
         >
           {DAYS.map((d) => (
             <ToggleGroupItem
               key={d.v}
               value={String(d.v)}
               title={d.long}
-              className="h-6 w-full rounded-full px-0 text-[10px] font-bold uppercase tracking-wider"
+              className="h-9 w-full rounded-full px-0 text-xs font-bold"
             >
-              {d.short}
+              <span className="sm:hidden">{d.short}</span>
+              <span className="hidden sm:inline">{d.long}</span>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
