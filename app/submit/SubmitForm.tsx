@@ -32,11 +32,11 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { LocationPin } from "@/app/_components/LocationPin";
-import { DayPicker } from "@/app/_components/DayPicker";
+import { SlotCard } from "@/app/_components/SlotCard";
 import { geocodeAddress } from "@/app/_lib/geocode";
 import { VERMONT_TOWNS } from "@/app/_lib/vermont-towns";
 import { cn } from "@/app/_lib/cn";
-import { Input } from "@/app/_components/ui/input";
+import { TooltipProvider } from "@/app/_components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -982,70 +982,28 @@ function WhenStep() {
     update({ schedules: [...draft.schedules, { ...EMPTY_SCHEDULE }] });
 
   return (
-    <div className="flex flex-col gap-6">
-      {draft.schedules.map((row, i) => (
-        <div
-          key={i}
-          className="relative rounded-2xl border border-zinc-200 bg-white/60 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60"
+    <TooltipProvider delayDuration={250}>
+      <div className="flex flex-col gap-3">
+        {draft.schedules.map((row, i) => (
+          <SlotCard
+            key={i}
+            row={row}
+            index={i}
+            canRemove={draft.schedules.length > 1}
+            onPatch={(p) => patchRow(i, p)}
+            onRemove={() => removeRow(i)}
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={addRow}
+          className="inline-flex w-fit items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">
-              Slot {i + 1}
-            </p>
-            {draft.schedules.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => removeRow(i)}
-                aria-label={`Remove slot ${i + 1}`}
-                className="rounded-full p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          <div className="mt-3 flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                Day of week
-              </span>
-              <DayPicker
-                value={row.dayOfWeek}
-                onChange={(v) => patchRow(i, { dayOfWeek: v })}
-                ariaLabel={`Day of week for slot ${i + 1}`}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Start time">
-                <Input
-                  type="time"
-                  value={row.startTime}
-                  onChange={(e) => patchRow(i, { startTime: e.target.value })}
-                />
-              </Field>
-              <Field label="End time (optional)">
-                <Input
-                  type="time"
-                  value={row.endTime ?? ""}
-                  onChange={(e) =>
-                    patchRow(i, { endTime: e.target.value || undefined })
-                  }
-                />
-              </Field>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={addRow}
-        className="inline-flex w-fit items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-      >
-        + Add another time
-      </button>
-    </div>
+          + Add another time
+        </button>
+      </div>
+    </TooltipProvider>
   );
 }
 
