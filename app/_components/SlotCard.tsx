@@ -74,12 +74,14 @@ export function SlotCard({
       />
 
       <div className="relative flex flex-col gap-2.5 px-3 py-2.5 pl-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-black tabular-nums text-white shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
-            {slotNumber}
-          </span>
-
-          {canRemove ? (
+        {/* Header (numbered pill + remove) only when there's more than one
+            slot. With a single slot, the day + time speak for themselves —
+            the number "1" of nothing reads as jargon. */}
+        {canRemove ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-black tabular-nums text-white shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
+              {slotNumber}
+            </span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -91,22 +93,10 @@ export function SlotCard({
                   <Trash2 className="h-3 w-3" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>Remove slot</TooltipContent>
+              <TooltipContent>Remove this time</TooltipContent>
             </Tooltip>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  aria-label="Cannot remove the only slot"
-                  className="inline-flex h-6 w-6 cursor-not-allowed items-center justify-center rounded-full text-zinc-300 dark:text-zinc-700"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Needs ≥1 slot</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+          </div>
+        ) : null}
 
         <DayPicker
           value={row.dayOfWeek}

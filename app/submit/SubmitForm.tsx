@@ -32,11 +32,10 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { LocationPin } from "@/app/_components/LocationPin";
-import { SlotCard } from "@/app/_components/SlotCard";
+import { SlotsSection } from "@/app/_components/SlotsSection";
 import { geocodeAddress } from "@/app/_lib/geocode";
 import { VERMONT_TOWNS } from "@/app/_lib/vermont-towns";
 import { cn } from "@/app/_lib/cn";
-import { TooltipProvider } from "@/app/_components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -982,28 +981,13 @@ function WhenStep() {
     update({ schedules: [...draft.schedules, { ...EMPTY_SCHEDULE }] });
 
   return (
-    <TooltipProvider delayDuration={250}>
-      <div className="flex flex-col gap-3">
-        {draft.schedules.map((row, i) => (
-          <SlotCard
-            key={i}
-            row={row}
-            index={i}
-            canRemove={draft.schedules.length > 1}
-            onPatch={(p) => patchRow(i, p)}
-            onRemove={() => removeRow(i)}
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={addRow}
-          className="inline-flex w-fit items-center gap-1.5 rounded-full border border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-        >
-          + Add another time
-        </button>
-      </div>
-    </TooltipProvider>
+    <SlotsSection
+      rows={draft.schedules}
+      onPatch={patchRow}
+      onRemove={removeRow}
+      onAdd={addRow}
+      description="Pick the day and time this pickup happens every week. If it runs more than once a week (say, Tuesdays and Thursdays), add a time for each."
+    />
   );
 }
 
