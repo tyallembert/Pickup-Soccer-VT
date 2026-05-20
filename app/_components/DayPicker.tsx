@@ -56,8 +56,8 @@ export function DayPicker({
       gsap.to(indicator, {
         x,
         width,
-        duration: 0.55,
-        ease: "back.out(1.8)",
+        duration: 0.45,
+        ease: "back.out(1.2)",
       });
     },
     { dependencies: [value] },
