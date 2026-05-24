@@ -1,0 +1,159 @@
+{
+  "_meta": {
+    "researchedAt": "2026-05-17",
+    "preparedAt": "2026-05-19",
+    "sourceFile": "/tmp/vt-pickup-soccer-research.json",
+    "schemaTarget": "locations + locationSchedules (post location-schedules split)",
+    "purpose": "Seed import for Vermont pickup soccer fields. Confirmed entries are 'approved'; one Brattleboro entry is 'pending' because its schedule is 2 years old and needs a phone confirmation before going live.",
+    "shape": {
+      "locations[]": "Each item is shaped like submitLocation args (name, town, address, lat, lng, details, schedules) plus _seedKey / status / _sourceUrl / _organizer / _verifyBefore for the importer.",
+      "schedules[]": "Each entry maps 1:1 to a locationSchedules row. dayOfWeek 0=Sunday … 6=Saturday. startTime is HH:mm 24-hour, America/New_York.",
+      "details": "Markdown. Already includes the source link so attribution survives a plain submitLocation call.",
+      "ownerId/status/submittedAt/approvedAt": "Importer must set ownerId to the admin user (lookup users by ADMIN_EMAIL), status from the entry's `status` field, submittedAt = Date.now(), and approvedAt = Date.now() for approved entries."
+    },
+    "consolidations": [
+      "Essex Junction Expo Center: research had two entries (Nordic 8 PM 8v8 + Saturday Late 9:30 PM) at the same address — collapsed into one location with two schedules.",
+      "Burlington Womxn's Pickup: research had two entries (Summer outdoor at Starr Farm vs Winter indoor at Robert Miller). Different venues, so kept as two separate locations."
+    ],
+    "excluded": [
+      "Sunday Mexicali League — no concrete venue/time confirmed; kept under _leads for follow-up.",
+      "GoodRec UVM Indoor & Virtue Field — no recurring schedule published (dynamic per-game).",
+      "BTV Pickup Soccer Facebook group — coordination channel, not a recurring fixture.",
+      "Capital Soccer Club Montpelier — no public adult drop-in schedule.",
+      "Waterbury 'Soccer for Little Feet' — ages 3–5, not adult pickup."
+    ]
+  },
+
+  "locations": [
+    {
+      "_seedKey": "shelburne-field-house-sunday",
+      "status": "approved",
+      "_organizer": "Social Sports VT",
+      "_sourceUrl": "https://www.socialsportsvt.com/recreational-pickup-soccer",
+      "name": "Sunday Morning Pickup Soccer",
+      "town": "Shelburne",
+      "address": "166 Athletic Drive, Shelburne, VT 05482",
+      "lat": 44.3804,
+      "lng": -73.2273,
+      "details": "Indoor 7v7 open (mixed gender), 16+. $15/Sunday, goalkeepers free. Organized by Social Sports VT at Shelburne Field House. Roster fills fast — Field 1 first, Field 2 opens once 16+ players sign up.\n\n**Organizer:** Social Sports VT\n**Source:** https://www.socialsportsvt.com/recreational-pickup-soccer",
+      "schedules": [
+        { "dayOfWeek": 0, "startTime": "07:00" }
+      ]
+    },
+
+    {
+      "_seedKey": "burlington-womxn-summer",
+      "status": "approved",
+      "_organizer": "Vermont Womxn's Pick-up Soccer (Meetup)",
+      "_sourceUrl": "https://www.meetup.com/Womens-Soccer-Vermont/",
+      "name": "Vermont Womxn's Pick-up Soccer (Summer)",
+      "town": "Burlington",
+      "address": "96 Starr Farm Rd, Burlington, VT 05408",
+      "lat": 44.5070,
+      "lng": -73.2640,
+      "details": "Outdoor pickup at Starr Farm Park, summer season. Free. 18+. Welcomes cis-women, trans, intersex, non-binary, and gender non-conforming players, all skill levels. No portable toilets on-site.\n\n**Organizer:** Vermont Womxn's Pick-up Soccer (Meetup)\n**Source:** https://www.meetup.com/Womens-Soccer-Vermont/",
+      "schedules": [
+        { "dayOfWeek": 0, "startTime": "18:00" }
+      ]
+    },
+
+    {
+      "_seedKey": "burlington-womxn-winter",
+      "status": "approved",
+      "_organizer": "Vermont Womxn's Pick-up Soccer (Meetup)",
+      "_sourceUrl": "https://www.meetup.com/Womens-Soccer-Vermont/",
+      "name": "Vermont Womxn's Pick-up Soccer (Winter)",
+      "town": "Burlington",
+      "address": "130 Gosse Court, Burlington, VT 05408",
+      "lat": 44.5106,
+      "lng": -73.2509,
+      "details": "Indoor pickup at Robert Miller Community & Recreation Center, winter season. $80 per 8-visit session, registration required (no drop-in). Welcomes cis-women, trans, intersex, non-binary, and gender non-conforming players, all skill levels.\n\nRegister via [enjoyburlington.com](https://enjoyburlington.com) or call 802-864-0123.\n\n**Organizer:** Vermont Womxn's Pick-up Soccer (Meetup)\n**Source:** https://www.meetup.com/Womens-Soccer-Vermont/",
+      "schedules": [
+        { "dayOfWeek": 0, "startTime": "18:00" }
+      ]
+    },
+
+    {
+      "_seedKey": "essex-junction-nordic-expo",
+      "status": "approved",
+      "_organizer": "Vermont Pickup Soccer Club",
+      "_sourceUrl": "https://opensports.net/posts/pickup-soccer-nordic-indoor-soccer-center-BtWgZV9Y7",
+      "name": "Nordic Indoor Soccer Center",
+      "town": "Essex Junction",
+      "address": "105 Pearl St, Essex Junction, VT 05452",
+      "lat": 44.4914,
+      "lng": -73.1115,
+      "details": "Adult coed pickup inside the Champlain Valley Expo. $9/player. Two Saturday slots:\n\n- **8:00 PM** — first 16 spots fill the 8v8; overflow plays 5v5/6v6.\n- **9:30 PM** — late slot, same building.\n\nNordic waiver required. Sign-ups via [OpenSports](https://opensports.net) / VPSC.\n\n**Organizer:** Vermont Pickup Soccer Club\n**Sources:**\n- https://opensports.net/posts/pickup-soccer-nordic-indoor-soccer-center-BtWgZV9Y7\n- https://opensports.net/posts/saturday-indoor-soccer-expo-center-QDzDf2p0b",
+      "schedules": [
+        { "dayOfWeek": 6, "startTime": "20:00" },
+        { "dayOfWeek": 6, "startTime": "21:30" }
+      ]
+    },
+
+    {
+      "_seedKey": "brattleboro-gibson-aiken",
+      "status": "pending",
+      "_organizer": "Brattleboro Recreation & Parks",
+      "_sourceUrl": "https://www.reformer.com/sports/adult-soccer-futsal-at-brattleboro-recreation-and-parks/article_05d922e8-6467-11ee-bb97-47c676cef454.html",
+      "_verifyBefore": "Last confirmed season was Oct 2023 – Apr 2024 (Thursdays 7–9 PM). Call 802-254-5808 to confirm current season and exact street number before approving.",
+      "name": "Brattleboro Adult Soccer / Futsal",
+      "town": "Brattleboro",
+      "address": "Gibson-Aiken Center, 207 Main St, Brattleboro, VT 05301",
+      "lat": 42.8509,
+      "lng": -72.5579,
+      "details": "Adult drop-in soccer / futsal in the 3rd-floor gym at the Gibson-Aiken Center. Run by Brattleboro Recreation & Parks. Last reported season ran Oct 2023 – Apr 2024 on Thursdays 7–9 PM — confirm the current season is live before relying on this.\n\n**Organizer:** Brattleboro Recreation & Parks (802-254-5808)\n**Source:** https://www.reformer.com/sports/adult-soccer-futsal-at-brattleboro-recreation-and-parks/article_05d922e8-6467-11ee-bb97-47c676cef454.html",
+      "schedules": [
+        { "dayOfWeek": 4, "startTime": "19:00", "endTime": "21:00" }
+      ]
+    }
+  ],
+
+  "_leads": [
+    {
+      "name": "Sunday Mexicali League",
+      "town": "Burlington area (likely)",
+      "organizer": "Vermont Pickup Soccer Club",
+      "sourceUrl": "https://www.meetup.com/Vermont-Pickup-Soccer/events/74598402/",
+      "verifyBefore": "Meetup group root returned 'Group not found' — open the event link directly to recover venue/time."
+    },
+    {
+      "name": "GoodRec — Indoor Turf Field, UVM",
+      "town": "Burlington",
+      "address": "University of Vermont (Gutterson / indoor turf)",
+      "details": "GoodRec advertises pickup 'every day' but games are spun up dynamically in-app — no fixed recurring slot.",
+      "sourceUrl": "https://www.goodrec.com/facilities/indoor-turf-field-university-of-vermont"
+    },
+    {
+      "name": "GoodRec — Virtue Field, UVM",
+      "town": "Burlington",
+      "address": "97 Spear Street, Burlington, VT 05405",
+      "lat": 44.4760,
+      "lng": -73.1903,
+      "details": "Outdoor turf at UVM. Same caveat as Gutterson — no fixed recurring day/time published.",
+      "sourceUrl": "https://www.goodrec.com/facilities/virtue-field-university-of-vermont"
+    },
+    {
+      "name": "BTV Pickup Soccer (Facebook group)",
+      "town": "Burlington area",
+      "details": "Coordination channel rather than a recurring fixture. Worth posting in to discover unlisted recurring games.",
+      "sourceUrl": "https://www.facebook.com/groups/BTVSoccer/"
+    },
+    {
+      "name": "Capital Soccer Club indoor (Montpelier)",
+      "town": "Montpelier",
+      "address": "Central Vermont Memorial Civic Center, 268 Gallison Hill Rd, Montpelier, VT 05602",
+      "lat": 44.2548,
+      "lng": -72.5523,
+      "details": "CSC runs indoor leagues and clinics on the converted ice-rink turf in March–April. No public adult drop-in pickup schedule found — contact club directly to see if any slot is open pickup.",
+      "sourceUrl": "https://capitalsoccer.net/club-info/facilities"
+    }
+  ],
+
+  "_searchedButNoResults": [
+    "Rutland, VT — no recurring adult pickup found",
+    "White River Junction / Upper Valley — no recurring adult pickup found (UVRA exists but no pickup listing)",
+    "Stowe — youth club only, no adult pickup",
+    "Middlebury — no adult pickup found",
+    "Norwich / Hanover — nothing VT-side; NH options exist across the river"
+  ]
+}
