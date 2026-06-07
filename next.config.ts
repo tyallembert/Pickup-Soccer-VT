@@ -1,7 +1,13 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Pin Turbopack's workspace root so it doesn't pick up the stray
+  // package-lock.json one directory up.
+  turbopack: {
+    root: path.dirname(fileURLToPath(import.meta.url)),
+  },
   async rewrites() {
     return [
       {
