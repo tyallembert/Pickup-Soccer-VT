@@ -72,7 +72,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
     return (
       <main
         ref={root}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 pt-24 pb-12"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24"
       >
         <AccountSkeleton />
       </main>
@@ -84,26 +84,24 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
   return (
     <main
       ref={root}
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 pt-24 pb-12"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24"
     >
       {/* Header card matching the wizard/owner page */}
-      <header className="account-anim overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 p-6 text-white shadow-lg">
+      <header className="account-anim overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 p-5 text-white shadow-lg sm:p-6">
         <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-100/90">
           Your account
         </p>
-        <div className="mt-2 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12 border-2 border-white/30">
-              <AvatarFallback className="bg-white text-base text-emerald-900">
-                {initialsFromEmail(email)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold">{email}</h1>
-              <p className="text-sm text-emerald-50/85">
-                {isAdmin ? "Super-admin" : "Pickup soccer organizer"}
-              </p>
-            </div>
+        <div className="mt-2 flex items-center gap-3">
+          <Avatar className="h-12 w-12 shrink-0 border-2 border-white/30">
+            <AvatarFallback className="bg-white text-base text-emerald-900">
+              {initialsFromEmail(email)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-bold sm:text-xl">{email}</h1>
+            <p className="text-xs text-emerald-50/85 sm:text-sm">
+              {isAdmin ? "Super-admin" : "Pickup soccer organizer"}
+            </p>
           </div>
           <SignOutButton />
         </div>
@@ -113,12 +111,12 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
       {isAdmin ? (
         <Link
           href="/admin"
-          className="account-anim flex items-center gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+          className="account-anim flex items-center gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100 sm:px-5 sm:py-4 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
         >
           <Shield className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
-          <span className="flex-1">
+          <span className="flex-1 min-w-0">
             <span className="font-semibold">Admin tools</span>
-            <span className="ml-2 text-emerald-800/70 dark:text-emerald-200/70">
+            <span className="mt-0.5 block text-xs text-emerald-800/70 sm:ml-2 sm:mt-0 sm:inline sm:text-sm dark:text-emerald-200/70">
               Review the moderation queue and manage approved fields.
             </span>
           </span>
@@ -135,18 +133,18 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
 
       {/* Locations list */}
       <section className="account-anim overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-900">
-          <div>
+        <header className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-4 sm:px-5 dark:border-zinc-900">
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
               Your fields
             </p>
-            <h2 className="mt-0.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="mt-0.5 text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-100">
               Pickup games you organize
             </h2>
           </div>
           <Link
             href="/submit"
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:scale-[1.03]"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:scale-[1.03]"
           >
             <Plus className="h-3.5 w-3.5" />
             Add
@@ -175,15 +173,23 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
               <li key={l._id}>
                 <Link
                   href={`/account/locations/${l._id}`}
-                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="group flex items-center gap-3 px-4 py-3 transition hover:bg-zinc-50 sm:px-5 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">
-                      {l.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                        {l.name}
+                      </p>
+                      <span
+                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[l.status]}`}
+                      >
+                        {STATUS_ICON[l.status]}
+                        {l.status}
+                      </span>
+                    </div>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
                       {l.schedules[0]
@@ -191,13 +197,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                         : null}
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[l.status]}`}
-                  >
-                    {STATUS_ICON[l.status]}
-                    {l.status}
-                  </span>
-                  <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
+                  <span className="shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
                     →
                   </span>
                 </Link>
@@ -210,12 +210,12 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
       {/* Helping maintain — fields where the user was approved as a co-maintainer */}
       {maintained.length > 0 ? (
         <section className="account-anim overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <header className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-900">
+          <header className="border-b border-zinc-100 px-4 py-4 sm:px-5 dark:border-zinc-900">
             <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
               <ShieldCheck className="h-3.5 w-3.5" />
               Helping maintain
             </p>
-            <h2 className="mt-0.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="mt-0.5 text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-100">
               Fields you co-organize
             </h2>
           </header>
@@ -224,15 +224,20 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
               <li key={l._id}>
                 <Link
                   href={`/account/locations/${l._id}`}
-                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="group flex items-center gap-3 px-4 py-3 transition hover:bg-zinc-50 sm:px-5 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">
-                      {l.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                        {l.name}
+                      </p>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
+                        Maintainer
+                      </span>
+                    </div>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
                       {l.schedules[0]
@@ -240,10 +245,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                         : null}
                     </p>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
-                    Maintainer
-                  </span>
-                  <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
+                  <span className="shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
                     →
                   </span>
                 </Link>
@@ -312,13 +314,19 @@ function StatCard({
 }) {
   const t = TONE[tone];
   return (
-    <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${t.bg}`}>
-      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${t.iconBg}`}>
+    <div
+      className={`flex flex-col items-start gap-2 rounded-2xl px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4 ${t.bg}`}
+    >
+      <div
+        className={`flex h-8 w-8 items-center justify-center rounded-lg ${t.iconBg}`}
+      >
         {icon}
       </div>
       <div className="min-w-0">
         <p className={`text-xl font-bold leading-none ${t.text}`}>{count}</p>
-        <p className={`mt-1 text-[11px] font-semibold uppercase tracking-wider ${t.text} opacity-75`}>
+        <p
+          className={`mt-1 text-[10px] font-semibold uppercase tracking-wider sm:text-[11px] ${t.text} opacity-75`}
+        >
           {label}
         </p>
       </div>

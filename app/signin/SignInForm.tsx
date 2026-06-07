@@ -79,7 +79,7 @@ export function SignInForm() {
   return (
     <div ref={root} className="relative z-10 w-full max-w-md">
       {/* Decorative ball peeking out of the corner */}
-      <div className="auth-ball pointer-events-none absolute -right-10 -top-16 h-32 w-32 opacity-55 drop-shadow-[0_10px_24px_rgba(16,185,129,0.4)] sm:h-40 sm:w-40">
+      <div className="auth-ball pointer-events-none absolute -top-14 right-2 h-24 w-24 opacity-55 drop-shadow-[0_10px_24px_rgba(16,185,129,0.4)] sm:-right-10 sm:-top-16 sm:h-40 sm:w-40">
         <Image
           src="/soccer-ball.png"
           alt=""
