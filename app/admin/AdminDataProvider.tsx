@@ -26,9 +26,21 @@ export type AdminPendingRow = {
   submittedAt: number;
 };
 
+export type AdminUserRow = {
+  _id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: "admin" | "user";
+  image: string | null;
+  createdAt: number;
+  locationsCount: number;
+};
+
 type AdminData = {
   allLocations: AdminLocationRow[] | undefined;
   pendingLocations: AdminPendingRow[] | undefined;
+  allUsers: AdminUserRow[] | undefined;
   isLoading: boolean;
   isReady: boolean;
 };
@@ -54,15 +66,21 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const pendingLocations = useQuery(api.admin.pendingLocations) as
     | AdminPendingRow[]
     | undefined;
+  const allUsers = useQuery(api.admin.allUsers) as
+    | AdminUserRow[]
+    | undefined;
 
   const isLoading =
-    allLocations === undefined || pendingLocations === undefined;
+    allLocations === undefined ||
+    pendingLocations === undefined ||
+    allUsers === undefined;
 
   return (
     <AdminDataContext.Provider
       value={{
         allLocations,
         pendingLocations,
+        allUsers,
         isLoading,
         isReady: !isLoading,
       }}

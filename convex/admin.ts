@@ -29,6 +29,82 @@ export const pendingLocations = query({
   },
 });
 
+export const allUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const users = await ctx.db.query("users").take(1000);
+    return Promise.all(
+      users.map(async (u) => {
+        const owned = await ctx.db
+          .query("locations")
+          .withIndex("by_owner_and_status", (q) => q.eq("ownerId", u._id))
+          .collect();
+        return {
+          _id: u._id,
+          name: u.name ?? null,
+          email: u.email ?? null,
+          phone: u.phone ?? null,
+          role: u.role ?? "user",
+          image: u.image ?? null,
+          createdAt: u._creationTime,
+          locationsCount: owned.length,
+        };
+      }),
+    );
+  },
+});
+
+export const adminGetUser = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    const user = await ctx.db.get(id);
+    if (!user) return null;
+    const owned = await ctx.db
+      .query("locations")
+      .withIndex("by_owner_and_status", (q) => q.eq("ownerId", id))
+      .collect();
+    const maintainers = await ctx.db
+      .query("locationMaintainers")
+      .withIndex("by_user_and_status", (q) => q.eq("userId", id))
+      .collect();
+    const maintainerRows = await Promise.all(
+      maintainers.map(async (m) => {
+        const loc = await ctx.db.get(m.locationId);
+        return {
+          _id: m._id,
+          locationId: m.locationId,
+          locationName: loc?.name ?? "(deleted)",
+          locationTown: loc?.town ?? "",
+          status: m.status,
+          requestedAt: m.requestedAt,
+          approvedAt: m.approvedAt,
+        };
+      }),
+    );
+    return {
+      _id: user._id,
+      name: user.name ?? null,
+      email: user.email ?? null,
+      phone: user.phone ?? null,
+      role: user.role ?? "user",
+      image: user.image ?? null,
+      createdAt: user._creationTime,
+      ownedLocations: owned
+        .map((l) => ({
+          _id: l._id,
+          name: l.name,
+          town: l.town,
+          status: l.status,
+          submittedAt: l.submittedAt,
+        }))
+        .sort((a, b) => b.submittedAt - a.submittedAt),
+      maintainers: maintainerRows.sort((a, b) => b.requestedAt - a.requestedAt),
+    };
+  },
+});
+
 export const allLocations = query({
   args: { status: v.optional(locationStatus) },
   handler: async (ctx, { status }) => {

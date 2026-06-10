@@ -12,6 +12,7 @@ import {
   LogOut,
   Shield,
   User,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -43,6 +44,12 @@ const ADMIN_ITEMS: Item[] = [
     label: "Locations",
     icon: Layers,
     match: (p) => p.startsWith("/admin/locations"),
+  },
+  {
+    href: "/admin/users",
+    label: "Users",
+    icon: Users,
+    match: (p) => p.startsWith("/admin/users"),
   },
 ];
 
