@@ -55,9 +55,9 @@ export function InstallPrompt() {
   if (dismissed || !worthShowing) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+    <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
       <Smartphone
-        className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400"
+        className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400"
         aria-hidden
       />
       <p className="min-w-0 flex-1 text-sm text-emerald-900 dark:text-emerald-100">

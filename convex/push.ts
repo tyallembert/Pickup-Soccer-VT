@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth } from "./lib/auth";
 import {
   buildPushPayload,
@@ -82,17 +83,22 @@ export const deletePushSubscription = mutation({
   },
 });
 
-/** Whether THIS device (identified by its endpoint) is registered. */
+/**
+ * Whether THIS device (identified by its endpoint) is registered.
+ *
+ * Answers instead of throwing for anonymous visitors: /install is a public page
+ * that renders the toggle, and a throwing query there takes the whole page down.
+ */
 export const mySubscriptionStatus = query({
   args: { endpoint: v.optional(v.string()) },
   handler: async (ctx, { endpoint }) => {
-    const user = await requireAuth(ctx);
-    if (!endpoint) return { subscribed: false };
+    const userId = await getAuthUserId(ctx);
+    if (userId === null || !endpoint) return { subscribed: false };
     const existing = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_endpoint", (q) => q.eq("endpoint", endpoint))
       .unique();
-    return { subscribed: !!existing && existing.userId === user._id };
+    return { subscribed: !!existing && existing.userId === userId };
   },
 });
 

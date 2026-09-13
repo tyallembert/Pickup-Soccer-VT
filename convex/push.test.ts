@@ -306,3 +306,12 @@ test("notifyAdmins reaches every admin's every device", async () => {
     "https://push.example.com/bob-phone",
   ]);
 });
+
+test("mySubscriptionStatus is safe for signed-out visitors", async () => {
+  const t = convexTest(schema, modules);
+  // /install is a public page and renders the toggle, so this query must not
+  // throw for an anonymous visitor — it would take the whole page down.
+  await expect(t.query(api.push.mySubscriptionStatus, {})).resolves.toEqual({
+    subscribed: false,
+  });
+});

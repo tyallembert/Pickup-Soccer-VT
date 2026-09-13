@@ -4,11 +4,15 @@ import Image from "next/image";
 import { useState } from "react";
 import { Check, Copy, Download, Share, SquarePlus } from "lucide-react";
 import { useInstall } from "@/app/_lib/use-install";
+import { usePush } from "@/app/_lib/use-push";
 import { PushToggle } from "@/app/_components/PushToggle";
 import { cn } from "@/app/_lib/cn";
 
 export function InstallClient() {
   const { os, browser, verdict, install } = useInstall();
+  // Read here as well as inside PushToggle so step 2 can check itself off.
+  // Convex dedupes the underlying query, so this costs no extra round trip.
+  const { subscribed } = usePush();
   const installed = verdict === "installed";
 
   return (
@@ -28,14 +32,18 @@ export function InstallClient() {
       </p>
 
       <h1 className="mt-8 text-center text-2xl font-bold text-balance text-zinc-900 dark:text-zinc-50">
-        {installed
-          ? "The app is on your home screen"
-          : "Put the queue on your home screen"}
+        {installed && subscribed
+          ? "You're all set"
+          : installed
+            ? "The app is on your home screen"
+            : "Put the queue on your home screen"}
       </h1>
       <p className="mt-2 text-center text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-        {installed
-          ? "One step left: let it send you notifications."
-          : "Open it like any other app, and get a notification the moment a field, signup, or request needs review."}
+        {installed && subscribed
+          ? "You're set. Alerts will arrive here when something needs review."
+          : installed
+            ? "One step left: let it send you notifications."
+            : "Open it like any other app, and get a notification the moment a field, signup, or request needs review."}
       </p>
 
       <ol className="mt-10 w-full space-y-3">
@@ -52,7 +60,7 @@ export function InstallClient() {
         <Step
           n={2}
           title="Turn on notifications"
-          done={false}
+          done={subscribed}
           dimmed={!installed && os === "ios"}
         >
           {!installed && os === "ios" ? (
@@ -61,7 +69,7 @@ export function InstallClient() {
               don&apos;t allow it from the browser.
             </p>
           ) : (
-            <PushToggle className="border-0 bg-transparent p-0 shadow-none dark:bg-transparent" />
+            <PushToggle nested />
           )}
         </Step>
       </ol>
@@ -273,6 +281,8 @@ function CopyLinkButton() {
       field.value = url;
       field.setAttribute("readonly", "");
       field.style.position = "fixed";
+      field.style.top = "0";
+      field.style.left = "0";
       field.style.opacity = "0";
       document.body.appendChild(field);
       field.select();
