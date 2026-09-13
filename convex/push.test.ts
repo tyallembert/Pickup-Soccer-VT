@@ -257,3 +257,52 @@ test("sendPendingDigest counts only pending locations", async () => {
   expect((jobs[0].args[0] as { event: { pendingCount: number } }).event)
     .toEqual({ kind: "pendingDigest", pendingCount: 2 });
 });
+
+test("notifyAdmins reaches every admin's every device", async () => {
+  const t = convexTest(schema, modules);
+  await t.run(async (ctx) => {
+    const alice = await ctx.db.insert("users", {
+      email: "alice@x.com",
+      role: "admin",
+    });
+    const bob = await ctx.db.insert("users", {
+      email: "bob@x.com",
+      role: "admin",
+    });
+    const player = await ctx.db.insert("users", {
+      email: "player@x.com",
+      role: "user",
+    });
+
+    const device = (userId: Id<"users">, endpoint: string) =>
+      ctx.db.insert("pushSubscriptions", {
+        userId,
+        endpoint,
+        p256dh: "k",
+        auth: "a",
+        createdAt: Date.now(),
+      });
+
+    // Alice on phone + laptop, Bob on one phone, and a regular user who must
+    // not be swept in.
+    await device(alice, "https://push.example.com/alice-phone");
+    await device(alice, "https://push.example.com/alice-laptop");
+    await device(bob, "https://push.example.com/bob-phone");
+    await device(player, "https://push.example.com/player-phone");
+  });
+
+  await t.mutation(internal.push.notifyAdmins, {
+    event: { kind: "pendingDigest", pendingCount: 1 },
+  });
+
+  const jobs = await scheduled(t);
+  expect(jobs).toHaveLength(1);
+  const { subscriptions } = jobs[0].args[0] as {
+    subscriptions: { endpoint: string }[];
+  };
+  expect(subscriptions.map((s) => s.endpoint).sort()).toEqual([
+    "https://push.example.com/alice-laptop",
+    "https://push.example.com/alice-phone",
+    "https://push.example.com/bob-phone",
+  ]);
+});
