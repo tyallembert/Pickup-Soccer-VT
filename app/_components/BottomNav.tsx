@@ -9,6 +9,7 @@ import {
   Bell,
   Compass,
   Eye,
+  EyeOff,
   Layers,
   ListChecks,
   LogOut,
@@ -84,17 +85,30 @@ export function BottomNav() {
   const pathname = usePathname() ?? "/";
   const { isAuthenticated } = useConvexAuth();
   const me = useQuery(api.public.me, isAuthenticated ? {} : "skip");
-  const { viewAsUser } = useViewMode();
+  const { viewAsUser, setViewAsUser } = useViewMode();
+  const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
 
+  // Two different questions: what the account IS, and what the UI SHOWS. The
+  // exit-preview control must hang off the former, or preview mode hides its
+  // own way out.
+  const isSiteAdmin = me?.role === "admin";
   // An admin previewing the site as a normal user gets the user tabs, matching
   // how the desktop admin nav already behaves.
-  const isAdmin = me?.role === "admin" && !viewAsUser;
-  const pendingCount = useQuery(api.admin.pendingCount, isAdmin ? {} : "skip");
+  const showAdminUi = isSiteAdmin && !viewAsUser;
+  const pendingCount = useQuery(
+    api.admin.pendingCount,
+    showAdminUi ? {} : "skip",
+  );
 
   if (!active || !me) return null;
 
-  const tabs = isAdmin ? ADMIN_TABS : USER_TABS;
+  const tabs = showAdminUi ? ADMIN_TABS : USER_TABS;
+  const previewing = isSiteAdmin && viewAsUser;
+  const exitPreview = () => {
+    setViewAsUser(false);
+    router.push("/admin");
+  };
 
   return (
     <>
@@ -103,8 +117,24 @@ export function BottomNav() {
       <div
         aria-hidden
         className="sm:hidden"
-        style={{ height: "calc(3.5rem + env(safe-area-inset-bottom))" }}
+        style={{
+          height: previewing
+            ? "calc(5.5rem + env(safe-area-inset-bottom))"
+            : "calc(3.5rem + env(safe-area-inset-bottom))",
+        }}
       />
+
+      {previewing && (
+        <button
+          type="button"
+          onClick={exitPreview}
+          className="fixed inset-x-0 z-[1100] flex items-center justify-center gap-2 bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_-4px_12px_rgba(0,0,0,0.12)] sm:hidden"
+          style={{ bottom: "calc(3.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <EyeOff className="h-3.5 w-3.5" aria-hidden />
+          Viewing as a regular user — tap to exit
+        </button>
+      )}
 
       <nav
         aria-label="Primary"
@@ -139,7 +169,8 @@ export function BottomNav() {
       <MoreDrawer
         open={moreOpen}
         onOpenChange={setMoreOpen}
-        isAdmin={isAdmin}
+        isSiteAdmin={isSiteAdmin}
+        showAdminUi={showAdminUi}
         email={me.email}
       />
     </>
@@ -188,12 +219,16 @@ function TabButton({
 function MoreDrawer({
   open,
   onOpenChange,
-  isAdmin,
+  isSiteAdmin,
+  showAdminUi,
   email,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  isAdmin: boolean;
+  /** True whenever the account is an admin, preview mode or not. */
+  isSiteAdmin: boolean;
+  /** True only when admin UI is actually being shown. */
+  showAdminUi: boolean;
   email: string;
 }) {
   const router = useRouter();
@@ -215,7 +250,7 @@ function MoreDrawer({
         </SheetHeader>
 
         <div className="flex flex-col px-4">
-          {isAdmin && (
+          {showAdminUi && (
             <DrawerLink
               href="/admin"
               icon={Shield}
@@ -223,13 +258,15 @@ function MoreDrawer({
               onClick={close}
             />
           )}
-          <DrawerLink
-            href="/account/locations"
-            icon={MapPin}
-            label="My fields"
-            onClick={close}
-          />
-          {isAdmin && (
+          {showAdminUi && (
+            <DrawerLink
+              href="/account"
+              icon={MapPin}
+              label="Your account & fields"
+              onClick={close}
+            />
+          )}
+          {showAdminUi && (
             <DrawerLink
               href="/submit"
               icon={Plus}
@@ -237,7 +274,7 @@ function MoreDrawer({
               onClick={close}
             />
           )}
-          {isAdmin && (
+          {showAdminUi && (
             <DrawerLink
               href="/admin/queue"
               icon={Bell}
@@ -252,7 +289,7 @@ function MoreDrawer({
             onClick={close}
           />
 
-          {isAdmin && (
+          {isSiteAdmin && (
             <DrawerButton
               icon={Eye}
               label={viewAsUser ? "Exit user preview" : "Preview as user"}
