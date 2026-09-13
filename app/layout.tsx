@@ -5,6 +5,7 @@ import { ConvexClientProvider } from "./ConvexClientProvider";
 import { PillNav } from "./_components/PillNav";
 import { AdminPillNav } from "./_components/AdminPillNav";
 import { Footer } from "./_components/Footer";
+import { ServiceWorkerRegistrar } from "./_components/ServiceWorkerRegistrar";
 import { ViewModeProvider } from "./_lib/view-mode";
 import "./globals.css";
 
@@ -117,6 +118,7 @@ export default function RootLayout({
       >
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
+            <ServiceWorkerRegistrar />
             <ViewModeProvider>
               <AdminPillNav />
               <PillNav />

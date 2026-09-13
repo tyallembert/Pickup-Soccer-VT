@@ -10,12 +10,16 @@
 
 import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
+import type * as lib_pushPayloads from "../lib/pushPayloads.js";
 import type * as maintainers from "../maintainers.js";
 import type * as owner from "../owner.js";
 import type * as public_ from "../public.js";
+import type * as push from "../push.js";
+import type * as pushNode from "../pushNode.js";
 import type * as seedAdmin from "../seedAdmin.js";
 import type * as seedAdminHelpers from "../seedAdminHelpers.js";
 import type * as submissions from "../submissions.js";
@@ -29,12 +33,16 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   auth: typeof auth;
+  crons: typeof crons;
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;
+  "lib/pushPayloads": typeof lib_pushPayloads;
   maintainers: typeof maintainers;
   owner: typeof owner;
   public: typeof public_;
+  push: typeof push;
+  pushNode: typeof pushNode;
   seedAdmin: typeof seedAdmin;
   seedAdminHelpers: typeof seedAdminHelpers;
   submissions: typeof submissions;

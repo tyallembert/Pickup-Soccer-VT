@@ -120,7 +120,7 @@ is not worth the complexity.
 
 | File | Runtime | Exports |
 |---|---|---|
-| `convex/push.ts` | default | `vapidPublicKey` (query), `savePushSubscription` (mutation), `deletePushSubscription` (mutation), `mySubscriptionStatus` (query), `notifyAdmins` (internal mutation), `dropSubscription` (internal mutation), `sendPendingDigest` (internal mutation) |
+| `convex/push.ts` | default | `vapidPublicKey` (query), `savePushSubscription` (mutation), `deletePushSubscription` (mutation), `mySubscriptionStatus` (query), `notifyAdmins` (internal mutation), `applyDeliveryResults` (internal mutation), `sendPendingDigest` (internal mutation) |
 | `convex/pushNode.ts` | `"use node"` | `send` (internal action) |
 | `convex/lib/pushPayloads.ts` | pure | Title/body/url builders per event type |
 | `convex/crons.ts` | — | Registers the digest against `internal.push.sendPendingDigest` |
@@ -132,9 +132,13 @@ is not worth the complexity.
   stay role-agnostic so a future user-facing notification does not need a
   migration.
 - `notifyAdmins` is an **internal** mutation — unreachable from any client.
-- `send` deletes a subscription on HTTP 404 or 410 from the push service (the
-  standard "this endpoint is gone" response) by scheduling `dropSubscription`.
-  Other failures increment `failureCount` and are left alone.
+- `send` classifies each delivery as `ok`, `gone` (HTTP 404/410 — the push
+  service saying the endpoint no longer exists) or `failed`, then applies the
+  whole batch through one `applyDeliveryResults` call rather than one round
+  trip per subscription. `gone` deletes the row; `failed` only increments
+  `failureCount`. The action also returns a `{ delivered, dropped, failed }`
+  summary so a delivery problem can be inspected with
+  `npx convex run pushNode:send`.
 - Payload construction lives in `convex/lib/pushPayloads.ts` as pure functions so
   it is unit-testable without standing up the Node runtime.
 
@@ -146,7 +150,9 @@ is not worth the complexity.
 | `app/_components/ServiceWorkerRegistrar.tsx` | Registers `/sw.js`; mounted once in the root layout; no-ops where unsupported. |
 | `app/_lib/use-push.ts` | Hook: `{ supported, permission, subscribed, subscribe, unsubscribe, iosNeedsInstall }`. Owns base64url → `Uint8Array` VAPID conversion and reconciles `pushManager.getSubscription()` against the DB. |
 | `app/admin/queue/PushToggle.tsx` | Bell toggle on `/admin/queue`. |
-| `app/_components/InstallPrompt.tsx` | Add-to-home-screen affordance. |
+| `app/_components/InstallPrompt.tsx` | Dismissible add-to-home-screen pill, mounted in the **admin layout only**. |
+| `app/_lib/platform.ts` | Pure UA/feature detection → a single `Platform` verdict. |
+| `app/install/page.tsx` + `InstallClient.tsx` | Dedicated install page that detects the device and shows the one correct action. |
 
 **Service worker handlers.** `push` calls `showNotification` with
 `icon: /icon-192.png`, `badge: /badge-96.png`, a `tag` for coalescing repeats of
@@ -157,12 +163,64 @@ closing every tab. There is no `fetch` handler and no cache.
 
 **Toggle states.** Unsupported browser; iOS-not-yet-installed; permission
 denied; off; on. Each state says what it is and what to do about it rather than
-failing silently. Uses shadcn `switch`, installed via `npx shadcn add switch`
-per project convention.
+failing silently.
+
+The control is a labelled button ("Turn on alerts" / "Turn off alerts"), not a
+switch. A switch implies a clean binary, and half of this component's states —
+unsupported browser, install-required, permission denied — are not on/off at
+all. The button also names what will happen, which a switch cannot.
+
+`InstallPrompt` is mounted in `app/admin/layout.tsx` rather than the root
+layout. Notifications only go to admins, so a site-wide install banner would be
+noise for someone who just wants to look up a game.
 
 **Install prompt.** Captures `beforeinstallprompt` on Chrome/Android. iOS Safari
 does not fire that event, so there it shows Share-sheet instructions instead.
 Dismissal is remembered in `localStorage`.
+
+### Install page (`/install`)
+
+Admins are not all technical, and "install a PWA" has a different answer on
+every browser. `/install` detects the device and shows exactly one action
+instead of a matrix of caveats. `app/_lib/platform.ts` resolves the environment
+to a single verdict, and the page renders one branch:
+
+| Verdict | What the page shows |
+|---|---|
+| `installed` | "You're all set" + a link to turn on notifications |
+| `can-prompt` | A real **Install app** button, wired to the captured `beforeinstallprompt` event |
+| `ios-safari` | Share-sheet steps: Share → Add to Home Screen, with the icons drawn inline |
+| `ios-other-browser` | "Open this page in Safari" + a copy-link button — no other iOS browser reliably installs to the Home Screen |
+| `android-other-browser` | "Open this page in Chrome" + a copy-link button |
+| `in-app-browser` | Instagram/Facebook/X/LinkedIn/Gmail webviews cannot install. "Open in your browser" + the platform-appropriate menu hint + copy link |
+| `desktop-safari` | macOS Ventura+: Share → Add to Dock |
+| `firefox-android` | Menu → Install, since Firefox never fires `beforeinstallprompt` |
+| `unsupported` | Plain explanation and the copy-link button |
+
+Detection rules, all in `platform.ts` so they are unit-testable against fixture
+user-agent strings:
+
+- **Installed**: `display-mode: standalone` media query, or `navigator.standalone`
+  on iOS.
+- **OS**: `iPadOS` reports a Mac UA, so iPad is caught by
+  `navigator.maxTouchPoints > 1` on a "Macintosh" UA.
+- **In-app browser**: UA contains `FBAN`/`FBAV`/`Instagram`/`Line`/`Twitter`/
+  `LinkedIn`/`GSA`.
+- **iOS browser**: `CriOS` (Chrome), `FxiOS` (Firefox), `EdgiOS` (Edge) — all
+  WebKit underneath, but Add to Home Screen is only dependable in Safari, so
+  they route to `ios-other-browser`.
+- **`can-prompt`**: a `beforeinstallprompt` event was actually captured. The
+  button is never shown on a guess; if the event never fires, the page falls
+  through to the browser-specific branch.
+
+Because `beforeinstallprompt` can fire before React mounts, it is captured by a
+listener installed in `ServiceWorkerRegistrar` and stashed in a module-level
+variable the hook reads on mount. Without that, the event is routinely missed
+and the Install button never appears.
+
+The copy-link button uses `navigator.clipboard.writeText` with a
+`document.execCommand` fallback for older webviews, which is precisely where
+this page matters most.
 
 **iOS constraint.** iOS 16.4+ is required, and push works **only** when the app
 has been added to the Home Screen. Safari-in-a-tab will never deliver a
@@ -236,9 +294,12 @@ separation is the reason every trigger schedules rather than calls inline.
 - `savePushSubscription` requires authentication.
 - `notifyAdmins` fans out only to users with `role === "admin"`.
 - `notifyAdmins` with no subscribed admins schedules nothing.
-- `dropSubscription` removes the row for a given endpoint.
+- `applyDeliveryResults` deletes `gone` rows, resets the counter on `ok`,
+  increments it on `failed`, and tolerates an endpoint deleted mid-flight.
 - `sendPendingDigest` schedules nothing when the pending queue is empty.
 - `pushPayloads` builders produce the right title, body, and URL per event type.
+- `platform.ts` resolves fixture user-agent strings to the right verdict, covering
+  iPadOS-reports-as-Mac, the in-app browsers, and each iOS browser.
 
 The Node action itself is a thin wrapper over `web-push`; its logic is the
 payload building and the 404/410 branch, both covered above.

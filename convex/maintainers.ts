@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth, requirePrimaryOwnerOf } from "./lib/auth";
 
 export const requestMaintainership = mutation({
@@ -34,6 +35,16 @@ export const requestMaintainership = mutation({
       status: "pending",
       requestedAt: Date.now(),
     });
+
+    await ctx.scheduler.runAfter(0, internal.push.notifyAdmins, {
+      event: {
+        kind: "maintainerRequest",
+        locationId,
+        name: location.name,
+      },
+      excludeUserId: user._id,
+    });
+
     return null;
   },
 });

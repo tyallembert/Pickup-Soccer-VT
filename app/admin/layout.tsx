@@ -6,6 +6,7 @@ import {
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { AdminDataProvider } from "./AdminDataProvider";
+import { InstallPrompt } from "@/app/_components/InstallPrompt";
 
 export default async function AdminLayout({
   children,
@@ -19,6 +20,7 @@ export default async function AdminLayout({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-24 pb-12">
+      <InstallPrompt />
       <AdminDataProvider>{children}</AdminDataProvider>
     </div>
   );

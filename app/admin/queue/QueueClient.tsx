@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Hourglass, ListChecks, MapPin, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
+import { PushToggle } from "@/app/_components/PushToggle";
 import { useAdminData } from "../AdminDataProvider";
 import { AdminSkeleton } from "../AdminSkeleton";
 
@@ -56,6 +57,8 @@ export function QueueClient() {
           Approve to publish, or reject with a reason for the submitter.
         </p>
       </header>
+
+      <PushToggle className="queue-anim" />
 
       <section className="queue-anim overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         {!rows || rows.length === 0 ? (

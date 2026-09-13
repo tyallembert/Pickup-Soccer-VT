@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 import { requireAuth, requirePrimaryOwnerOf } from "./lib/auth";
 
@@ -61,6 +62,19 @@ export const submitLocation = mutation({
         endTime: s.endTime,
       });
     }
+
+    // Scheduled, not awaited inline: a push failure must never roll back the
+    // submission the user just made.
+    await ctx.scheduler.runAfter(0, internal.push.notifyAdmins, {
+      event: {
+        kind: "locationPending",
+        locationId: id,
+        name: locArgs.name,
+        town: locArgs.town,
+      },
+      excludeUserId: user._id,
+    });
+
     return id;
   },
 });
@@ -76,6 +90,17 @@ export const resubmitLocation = mutation({
       status: "pending",
       rejectionReason: undefined,
     });
+
+    await ctx.scheduler.runAfter(0, internal.push.notifyAdmins, {
+      event: {
+        kind: "locationPending",
+        locationId: location._id,
+        name: location.name,
+        town: location.town,
+      },
+      excludeUserId: location.ownerId,
+    });
+
     return null;
   },
 });

@@ -34,7 +34,10 @@ export default defineSchema({
     role: v.optional(v.union(v.literal("admin"), v.literal("user"))),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("phone", ["phone"])
+    // Admin push fan-out looks up admins on every signup/submission; an index
+    // keeps that off a full table scan.
+    .index("by_role", ["role"]),
 
   locations: defineTable({
     name: v.string(),
@@ -75,6 +78,22 @@ export default defineSchema({
   })
     .index("by_location", ["locationId"])
     .index("by_schedule_and_date", ["scheduleId", "date"]),
+
+  // Web Push subscriptions, one row per browser+device. `endpoint` is the URL
+  // the push service issues and is the natural key: re-subscribing the same
+  // device must update the row rather than add another.
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+    lastSuccessAt: v.optional(v.number()),
+    failureCount: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
 
   // Co-maintainer relationships. The primary owner (locations.ownerId) approves
   // requests and can revoke. An "approved" row grants the same edit powers the
