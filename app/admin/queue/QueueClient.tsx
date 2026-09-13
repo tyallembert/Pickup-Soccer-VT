@@ -41,7 +41,7 @@ export function QueueClient() {
   return (
     <div ref={root} className="flex flex-col gap-6">
       <header className="queue-anim overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-amber-100/90">
             Moderation queue
           </p>

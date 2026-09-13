@@ -77,7 +77,7 @@ export function UserDetailClient({ id }: { id: Id<"users"> }) {
           isAdmin ? "from-emerald-700 to-emerald-500" : "from-zinc-900 to-zinc-700"
         }`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-white/70">
             Admin · User
           </p>

@@ -84,7 +84,7 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
   return (
     <div ref={root} className="flex flex-col gap-6">
       <header className="review-anim overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-amber-100/90">
             Awaiting your call
           </p>
@@ -93,13 +93,13 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
           </span>
         </div>
         <h1 className="mt-1 text-2xl font-bold">Review submission</h1>
-        <p className="mt-1 inline-flex items-center gap-2 text-sm text-amber-50/90">
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-amber-50/90">
           <Avatar className="h-6 w-6 border border-white/30">
             <AvatarFallback className="bg-white text-[10px] text-amber-900">
               {initialsFromEmail(data.ownerEmail)}
             </AvatarFallback>
           </Avatar>
-          Submitted by <strong className="font-semibold">{data.ownerEmail}</strong>
+          Submitted by <strong className="font-semibold break-all">{data.ownerEmail}</strong>
         </p>
       </header>
 

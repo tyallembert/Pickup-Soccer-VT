@@ -134,7 +134,7 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
       <header
         className={`admin-loc-anim overflow-hidden rounded-2xl bg-gradient-to-br ${theme.from} ${theme.to} p-6 text-white shadow-lg`}
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-white/85">
             {theme.eyebrow}
           </p>
@@ -144,13 +144,13 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
           </span>
         </div>
         <h1 className="mt-1 text-2xl font-bold">{data.name}</h1>
-        <p className="mt-1 inline-flex items-center gap-2 text-sm text-white/85">
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/85">
           <Avatar className="h-6 w-6 border border-white/30">
             <AvatarFallback className="bg-white/20 text-[10px] text-white">
               {initialsFromEmail(data.ownerEmail)}
             </AvatarFallback>
           </Avatar>
-          Owner: <strong className="font-semibold">{data.ownerEmail}</strong>
+          Owner: <strong className="font-semibold break-all">{data.ownerEmail}</strong>
         </p>
       </header>
 

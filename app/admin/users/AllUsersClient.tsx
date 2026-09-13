@@ -59,7 +59,7 @@ export function AllUsersClient() {
   return (
     <div ref={root} className="flex flex-col gap-6">
       <header className="users-anim overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-zinc-300">
             Admin · Users
           </p>

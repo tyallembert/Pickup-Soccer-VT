@@ -51,7 +51,7 @@ export default function AdminOverview() {
     <div ref={root} className="flex flex-col gap-6">
       {/* Header card */}
       <header className="admin-anim overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-zinc-300">
             Admin · Overview
           </p>
@@ -176,19 +176,21 @@ function StatCard({
 }) {
   const t = TONE[tone];
   const inner = (
-    <div className={`flex items-start gap-3 rounded-2xl px-4 py-4 transition group-hover:ring-2 ${t.bg} ${t.ring}`}>
-      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${t.iconBg}`}>
+    <div className={`flex flex-col items-start gap-2 rounded-2xl px-2 py-3 transition group-hover:ring-2 sm:flex-row sm:items-start sm:gap-3 sm:px-4 sm:py-4 ${t.bg} ${t.ring}`}>
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-9 sm:w-9 ${t.iconBg}`}>
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className={`text-2xl font-bold leading-none ${t.text}`}>{count}</p>
+        <p className={`text-2xl leading-none font-bold ${t.text}`}>{count}</p>
         <p
-          className={`mt-1 text-[11px] font-semibold uppercase tracking-wider ${t.text} opacity-75`}
+          className={`mt-1 text-[10px] font-semibold tracking-wide uppercase sm:text-[11px] sm:tracking-wider ${t.text} opacity-75`}
         >
           {label}
         </p>
         {cta ? (
-          <p className={`mt-1 text-xs ${t.text} opacity-75 group-hover:opacity-100`}>
+          <p
+            className={`mt-1 hidden text-xs sm:block ${t.text} opacity-75 group-hover:opacity-100`}
+          >
             {cta} →
           </p>
         ) : null}
