@@ -6,6 +6,7 @@ import { PillNav } from "./_components/PillNav";
 import { AdminPillNav } from "./_components/AdminPillNav";
 import { Footer } from "./_components/Footer";
 import { ServiceWorkerRegistrar } from "./_components/ServiceWorkerRegistrar";
+import { BottomNav } from "./_components/BottomNav";
 import { ViewModeProvider } from "./_lib/view-mode";
 import "./globals.css";
 
@@ -101,6 +102,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Required for env(safe-area-inset-*) to resolve — without it the bottom
+  // tab bar sits under the iPhone home indicator.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#10b981" },
     { media: "(prefers-color-scheme: dark)", color: "#064e3b" },
@@ -124,6 +128,7 @@ export default function RootLayout({
               <PillNav />
               <main className="min-h-dvh">{children}</main>
               <Footer />
+              <BottomNav />
             </ViewModeProvider>
           </ConvexClientProvider>
         </body>

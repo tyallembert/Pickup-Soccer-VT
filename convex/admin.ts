@@ -29,6 +29,22 @@ export const pendingLocations = query({
   },
 });
 
+/**
+ * Just the number, for the bottom nav's badge. `pendingLocations` joins each
+ * row to its owner, which is far too much work for a digit.
+ */
+export const pendingCount = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const rows = await ctx.db
+      .query("locations")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .take(100);
+    return rows.length;
+  },
+});
+
 export const allUsers = query({
   args: {},
   handler: async (ctx) => {

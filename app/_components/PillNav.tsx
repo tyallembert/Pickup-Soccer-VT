@@ -7,6 +7,7 @@ import { User } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarFallback, initialsFromEmail } from "./ui/avatar";
 import { cn } from "@/app/_lib/cn";
+import { useBottomNavActive } from "@/app/_lib/use-bottom-nav";
 
 const ITEMS = [
   {
@@ -25,13 +26,19 @@ export function PillNav() {
   const pathname = usePathname() ?? "/";
   const { isAuthenticated, isLoading } = useConvexAuth();
   const me = useQuery(api.public.me, isAuthenticated ? {} : "skip");
+  // The bottom tab bar covers phones when installed; two nav bars on one small
+  // screen is just lost space.
+  const bottomNav = useBottomNavActive();
 
   const activeIndex = ITEMS.findIndex((i) => i.match(pathname));
   const isAccountActive = pathname.startsWith("/account") || pathname.startsWith("/admin");
 
   return (
     <nav
-      className="pointer-events-none fixed left-1/2 top-4 z-[1100] -translate-x-1/2"
+      className={cn(
+        "pointer-events-none fixed top-4 left-1/2 z-[1100] -translate-x-1/2",
+        bottomNav && "max-sm:hidden",
+      )}
       aria-label="Primary"
     >
       <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/15 bg-black/55 p-1 shadow-2xl shadow-black/40 backdrop-blur-xl">
