@@ -11,9 +11,11 @@ const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 // Without this, Convex Auth writes its token cookies with no `maxAge`, which
 // makes them *session* cookies — the browser drops them when the tab/app is
 // closed, so you get signed out even though the Convex session itself is still
-// valid for 30 days. Pinning maxAge keeps the login alive for a full week, and
-// the window rolls forward every time the middleware refreshes the tokens.
-const SEVEN_DAYS_IN_SECONDS = 60 * 60 * 24 * 7;
+// valid. Matching Convex Auth's own 30-day session default (both
+// `totalDurationMs` and `inactiveDurationMs`) means the cookie and the session
+// expire together instead of the cookie cutting the login short. The window
+// rolls forward every time the middleware refreshes the tokens.
+const THIRTY_DAYS_IN_SECONDS = 60 * 60 * 24 * 30;
 
 export default convexAuthNextjsMiddleware(
   async (request, { convexAuth }) => {
@@ -30,7 +32,7 @@ export default convexAuthNextjsMiddleware(
       );
     }
   },
-  { cookieConfig: { maxAge: SEVEN_DAYS_IN_SECONDS } },
+  { cookieConfig: { maxAge: THIRTY_DAYS_IN_SECONDS } },
 );
 
 export const config = {
