@@ -65,8 +65,8 @@ export function QueueClient() {
   const total = fieldCount + requestCount;
 
   return (
-    <div ref={root} className="flex flex-col gap-6">
-      <header className="queue-anim overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 p-6 text-white shadow-lg">
+    <div ref={root} className="flex flex-col gap-6 app:gap-4">
+      <header className="queue-anim overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 p-6 text-white shadow-lg app:p-5">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-[11px] uppercase tracking-[0.3em] text-amber-100/90">
             Admin · Approvals
@@ -75,8 +75,8 @@ export function QueueClient() {
             <Hourglass className="h-3 w-3" /> {total} waiting
           </span>
         </div>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold">
-          <Inbox className="h-6 w-6" />
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold app:text-xl">
+          <Inbox className="h-6 w-6 app:h-5 app:w-5" />
           Approvals
         </h1>
         <p className="mt-1 text-sm text-amber-50/90">

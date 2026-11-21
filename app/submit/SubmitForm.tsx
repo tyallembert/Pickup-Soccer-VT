@@ -416,7 +416,7 @@ function SubmitFormView() {
   };
 
   return (
-    <div className="relative mx-auto w-full max-w-2xl px-6 pt-24 pb-12">
+    <div className="relative mx-auto w-full max-w-2xl px-6 pt-24 pb-12 app:px-4 app:pt-4 app:pb-6">
       <Header />
       <Stepper />
 

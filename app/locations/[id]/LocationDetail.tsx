@@ -106,7 +106,7 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
     return (
       <main
         ref={root}
-        className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pt-24 pb-12"
+        className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pt-24 pb-12 app:gap-4 app:px-4 app:pt-4 app:pb-6"
       >
         <div className="h-44 animate-pulse rounded-2xl bg-gradient-to-br from-emerald-100 to-zinc-100 dark:from-emerald-950/30 dark:to-zinc-900" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -143,11 +143,11 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
   return (
     <main
       ref={root}
-      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pt-24 pb-12"
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 pt-24 pb-12 app:gap-4 app:px-4 app:pt-4 app:pb-6"
     >
       <Link
         href="/"
-        className="loc-anim inline-flex w-fit items-center gap-1 text-xs font-semibold text-zinc-500 transition hover:text-emerald-700 dark:text-zinc-400 dark:hover:text-emerald-300"
+        className="loc-anim inline-flex w-fit items-center gap-1 text-xs font-semibold text-zinc-500 transition hover:text-emerald-700 app:hidden dark:text-zinc-400 dark:hover:text-emerald-300"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to the directory

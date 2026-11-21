@@ -73,7 +73,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
     return (
       <main
         ref={root}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24 app:gap-4 app:pt-4 app:pb-6"
       >
         <AccountSkeleton />
       </main>
@@ -85,7 +85,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
   return (
     <main
       ref={root}
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-20 pb-12 sm:px-6 sm:pt-24 app:gap-4 app:pt-4 app:pb-6"
     >
       {/* Header card matching the wizard/owner page */}
       <header className="account-anim overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-500 p-5 text-white shadow-lg sm:p-6">

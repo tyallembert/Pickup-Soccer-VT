@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <title>Offline · Vermont Pickup Soccer</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0; min-height: 100svh; display: grid; place-items: center;
+        padding: 16px; box-sizing: border-box; text-align: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #fff; color: #18181b;
+      }
+      @media (prefers-color-scheme: dark) { body { background: #09090b; color: #fafafa; } }
+      img { width: 56px; height: 56px; }
+      h1 { font-size: 20px; margin: 16px 0 0; }
+      p { color: #71717a; margin: 8px auto 24px; max-width: 18rem; line-height: 1.45; }
+      button {
+        font: inherit; font-weight: 600; padding: 10px 20px; border-radius: 999px;
+        border: 0; background: #059669; color: #fff;
+      }
+      button:active { transform: scale(0.97); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icon-192.png" alt="" />
+      <h1>You're offline</h1>
+      <p>Fields and game times come live from the server, so they need a connection.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

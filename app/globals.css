@@ -163,3 +163,28 @@ body {
 .data-\[state\=closed\]\:animate-out[data-state="closed"] {
   animation: fade-out 100ms ease-in, zoom-out 100ms ease-in;
 }
+
+/* ---- Installed app on a phone ----
+   `app:` styles apply when the site runs as an installed PWA (display-mode
+   standalone, or navigator.standalone on iOS) on a phone-width screen. The
+   inline script in app/layout.tsx sets data-display before first paint, so
+   the server-rendered page never flashes the website layout first. */
+@custom-variant app {
+  @media (width < 40rem) {
+    :root[data-display="standalone"] & {
+      @slot;
+    }
+  }
+}
+
+html {
+  /* No grey flash on tap. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (width < 40rem) {
+  :root[data-display="standalone"] {
+    /* Anchored scrolling stops under the top bar, not behind it. */
+    scroll-padding-top: calc(3.5rem + env(safe-area-inset-top));
+  }
+}

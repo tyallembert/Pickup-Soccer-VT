@@ -16,7 +16,7 @@ export function InstallClient() {
   const installed = verdict === "installed";
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center px-6 pt-24 pb-16">
+    <div className="mx-auto flex w-full max-w-md flex-col items-center px-6 pt-24 pb-16 app:px-4 app:pt-6 app:pb-6">
       {/* The hero is the outcome itself: the icon at the size it will sit on a
           home screen, so the page shows rather than describes what you get. */}
       <Image

@@ -7,6 +7,7 @@ import { AdminPillNav } from "./_components/AdminPillNav";
 import { Footer } from "./_components/Footer";
 import { ServiceWorkerRegistrar } from "./_components/ServiceWorkerRegistrar";
 import { BottomNav } from "./_components/BottomNav";
+import { AppTopBar } from "./_components/AppTopBar";
 import { ViewModeProvider } from "./_lib/view-mode";
 import "./globals.css";
 
@@ -99,15 +100,27 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
+  appleWebApp: {
+    capable: true,
+    title: "VT Soccer",
+    // Solid status bar above the app's own top bar, as in the finances app.
+    statusBarStyle: "default",
+  },
 };
+
+// Runs before first paint. Marks the page as the installed app so the `app:`
+// variant (globals.css) can lay it out as one from the start, rather than
+// flashing the website layout until React hydrates.
+const DISPLAY_MODE_SCRIPT = `try{if(matchMedia("(display-mode: standalone)").matches||navigator.standalone===true)document.documentElement.dataset.display="standalone"}catch(e){}`;
 
 export const viewport: Viewport = {
   // Required for env(safe-area-inset-*) to resolve — without it the bottom
   // tab bar sits under the iPhone home indicator.
   viewportFit: "cover",
+  // Matches the app's top bar, so the phone's status bar reads as part of it.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#10b981" },
-    { media: "(prefers-color-scheme: dark)", color: "#064e3b" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
   ],
 };
 
@@ -119,14 +132,20 @@ export default function RootLayout({
       <html
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full scroll-smooth scroll-pt-20 antialiased`}
+        // DISPLAY_MODE_SCRIPT sets data-display before hydration.
+        suppressHydrationWarning
       >
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: DISPLAY_MODE_SCRIPT }} />
+        </head>
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
             <ServiceWorkerRegistrar />
             <ViewModeProvider>
               <AdminPillNav />
               <PillNav />
-              <main className="min-h-dvh">{children}</main>
+              <AppTopBar />
+              <main className="min-h-dvh app:min-h-0 app:flex-1">{children}</main>
               <Footer />
               <BottomNav />
             </ViewModeProvider>

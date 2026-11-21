@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "Vermont Pickup Soccer",
-    short_name: "VT Pickup Soccer",
+    short_name: "VT Soccer",
     description:
       "Find weekly pickup soccer games across Vermont — free, public, and updated by the people who play.",
     start_url: "/",
@@ -11,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#ffffff",
-    theme_color: "#10b981",
+    theme_color: "#ffffff",
     categories: ["sports", "lifestyle", "social"],
     lang: "en-US",
     icons: [
