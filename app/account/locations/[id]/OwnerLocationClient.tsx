@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -29,7 +29,7 @@ import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
 import posthog from "posthog-js";
 
-type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
+export type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -78,7 +78,14 @@ const STATUS_THEME: Record<
   },
 };
 
-export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
+export function OwnerLocationClient({
+  id,
+  initialTab,
+}: {
+  id: Id<"locations">;
+  /** From `?tab=`, so a link can open straight onto Maintainers. */
+  initialTab?: Tab;
+}) {
   const data = useQuery(api.public.getMyLocation, { id });
   const update = useMutation(api.owner.updateLocation);
   const setStatus = useMutation(api.owner.setScheduleStatus);
@@ -90,14 +97,21 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const tabRunCount = useRef(0);
   const isLoading = data === undefined;
-  const [tab, setTab] = useState<Tab>("details");
+  const [requestedTab, setTab] = useState<Tab>(initialTab ?? "details");
 
   const status = (data?.status ?? "pending") as Status;
   const isPrimary = data?.viewerIsPrimaryOwner ?? false;
   const viewerRole = data?.viewerRole;
+  // Same subscription MaintainersPanel opens, so the client shares it.
+  const maintainers = useQuery(
+    api.maintainers.listMaintainersForLocation,
+    isPrimary && status === "approved" ? { locationId: id } : "skip",
+  );
+  const pendingMaintainers =
+    maintainers?.filter((m) => m.status === "pending").length ?? 0;
   const tabItems = useMemo<SegmentedTab<Tab>[]>(() => {
     const items: SegmentedTab<Tab>[] = [
-      { value: "details", label: "Field details", icon: <Settings className="h-3.5 w-3.5" /> },
+      { value: "details", label: "Field details", shortLabel: "Details", icon: <Settings className="h-3.5 w-3.5" /> },
     ];
     if (status === "approved") {
       items.push({
@@ -108,22 +122,29 @@ export function OwnerLocationClient({ id }: { id: Id<"locations"> }) {
       items.push({
         value: "lastSession",
         label: "Last session",
+        shortLabel: "Last game",
         icon: <ClipboardList className="h-3.5 w-3.5" />,
       });
       if (isPrimary) {
         items.push({
           value: "maintainers",
           label: "Maintainers",
+          shortLabel: "Helpers",
           icon: <Users className="h-3.5 w-3.5" />,
+          badge: pendingMaintainers,
         });
       }
     }
     return items;
-  }, [status, isPrimary]);
+  }, [status, isPrimary, pendingMaintainers]);
 
-  useEffect(() => {
-    if (!tabItems.some((t) => t.value === tab)) setTab("details");
-  }, [tabItems, tab]);
+
+  // A tab this field doesn't have (yet) shows Field details. Derived, not
+  // reset in an effect, so a ?tab=maintainers link survives the loading
+  // render, when only Field details exists.
+  const tab: Tab = tabItems.some((t) => t.value === requestedTab)
+    ? requestedTab
+    : "details";
 
   useGSAP(
     () => {

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { CheckCircle2, Hourglass, Layers, MapPin, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Hourglass, Layers, MapPin, Search, UserPlus, XCircle } from "lucide-react";
 import { Input } from "@/app/_components/ui/input";
 import {
   Select,
@@ -29,7 +29,11 @@ export function AllLocationsClient() {
   const [status, setStatus] = useState<"all" | Status>("all");
   const [q, setQ] = useState("");
 
-  const { allLocations: rows, isLoading } = useAdminData();
+  const { allLocations: rows, pendingMaintainers, isLoading } = useAdminData();
+  const requestsByField = new Map<string, number>();
+  for (const m of pendingMaintainers ?? []) {
+    requestsByField.set(m.locationId, (requestsByField.get(m.locationId) ?? 0) + 1);
+  }
 
   const filtered = (rows ?? [])
     .filter((r) => (status === "all" ? true : r.status === status))
@@ -122,10 +126,16 @@ export function AllLocationsClient() {
           </p>
         ) : (
           <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
-            {filtered.map((r) => (
+            {filtered.map((r) => {
+              const requests = requestsByField.get(r._id) ?? 0;
+              return (
               <li key={r._id}>
                 <Link
-                  href={`/admin/locations/${r._id}`}
+                  href={
+                    requests > 0
+                      ? `/admin/locations/${r._id}?tab=maintainers`
+                      : `/admin/locations/${r._id}`
+                  }
                   className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
@@ -137,13 +147,23 @@ export function AllLocationsClient() {
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">{r.town}</p>
                   </div>
+                  {requests > 0 ? (
+                    <span
+                      title="Co-maintainer requests waiting"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      {requests}
+                    </span>
+                  ) : null}
                   <StatusPill status={r.status} />
                   <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
                     →
                   </span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
         {rows ? (

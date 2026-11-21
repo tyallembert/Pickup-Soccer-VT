@@ -107,5 +107,7 @@ export default defineSchema({
   })
     .index("by_location_and_user", ["locationId", "userId"])
     .index("by_location_and_status", ["locationId", "status"])
-    .index("by_user_and_status", ["userId", "status"]),
+    .index("by_user_and_status", ["userId", "status"])
+    // The admin Approvals screen lists every pending request across fields.
+    .index("by_status", ["status"]),
 });

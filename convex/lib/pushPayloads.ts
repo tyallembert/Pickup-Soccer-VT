@@ -11,7 +11,12 @@ export type PushEvent =
       town: string;
     }
   | { kind: "userSignup"; userId: string; email?: string }
-  | { kind: "maintainerRequest"; locationId: string; name: string }
+  | {
+      kind: "maintainerRequest";
+      locationId: string;
+      name: string;
+      email?: string;
+    }
   | { kind: "pendingDigest"; pendingCount: number };
 
 export type PushPayload = {
@@ -47,8 +52,10 @@ export function buildPushPayload(event: PushEvent): PushPayload {
     case "maintainerRequest":
       return {
         title: "Co-maintainer request",
-        body: `Someone asked to help maintain ${event.name}.`,
-        url: `/admin/locations/${event.locationId}`,
+        body: `${event.email || "Someone"} asked to help maintain ${event.name}.`,
+        // Approvals lists every pending request with Approve and Deny right on
+        // the row. The field's own admin page buries them behind a tab.
+        url: "/admin/queue",
         tag: `maintainer:${event.locationId}`,
       };
 
@@ -85,6 +92,7 @@ export const pushEventValidator = v.union(
     kind: v.literal("maintainerRequest"),
     locationId: v.id("locations"),
     name: v.string(),
+    email: v.optional(v.string()),
   }),
   v.object({
     kind: v.literal("pendingDigest"),

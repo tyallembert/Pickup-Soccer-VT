@@ -183,7 +183,7 @@ export function UserDetailClient({ id }: { id: Id<"users"> }) {
             {data.maintainers.map((m) => (
               <li key={m._id}>
                 <Link
-                  href={`/admin/locations/${m.locationId}`}
+                  href={`/admin/locations/${m.locationId}?tab=maintainers`}
                   className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200">

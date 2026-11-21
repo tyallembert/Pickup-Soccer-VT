@@ -5,8 +5,12 @@ import { cn } from "@/app/_lib/cn";
 export type SegmentedTab<T extends string> = {
   value: T;
   label: string;
+  /** Used instead of `label` on phones when four or more tabs share the strip. */
+  shortLabel?: string;
   icon?: React.ReactNode;
   hint?: string;
+  /** A count that needs attention, e.g. pending requests. Hidden at 0. */
+  badge?: number;
 };
 
 /**
@@ -27,6 +31,9 @@ export function SegmentedTabs<T extends string>({
   ariaLabel?: string;
 }) {
   const activeIndex = items.findIndex((i) => i.value === value);
+  // Four tabs across a phone leave each label about 70px. Dropping the icons
+  // there keeps the words readable instead of truncating every one.
+  const crowded = items.length >= 4;
   return (
     <div
       role="tablist"
@@ -59,13 +66,29 @@ export function SegmentedTabs<T extends string>({
             title={it.hint}
             className={cn(
               "relative z-10 flex min-w-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition-colors",
+              crowded && "max-sm:gap-1 max-sm:px-1.5 max-sm:text-[11px] max-sm:tracking-normal max-sm:[&>svg]:hidden",
               active
                 ? "text-white"
                 : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
             )}
           >
             {it.icon}
-            <span className="truncate">{it.label}</span>
+            {crowded && it.shortLabel ? (
+              <>
+                <span className="truncate sm:hidden">{it.shortLabel}</span>
+                <span className="truncate max-sm:hidden">{it.label}</span>
+              </>
+            ) : (
+              <span className="truncate">{it.label}</span>
+            )}
+            {it.badge ? (
+              <span
+                aria-label={`${it.badge} waiting`}
+                className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white"
+              >
+                {it.badge}
+              </span>
+            ) : null}
           </button>
         );
       })}

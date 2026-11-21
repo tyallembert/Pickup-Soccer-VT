@@ -32,14 +32,26 @@ describe("buildPushPayload", () => {
     expect(p.body).toBe("A new account was created.");
   });
 
-  test("maintainerRequest names the location", () => {
+  test("maintainerRequest names the location and opens Approvals", () => {
     const p = buildPushPayload({
       kind: "maintainerRequest",
       locationId: "loc9",
       name: "Leddy Park",
     });
-    expect(p.body).toContain("Leddy Park");
-    expect(p.url).toBe("/admin/locations/loc9");
+    expect(p.body).toBe("Someone asked to help maintain Leddy Park.");
+    // Approvals is where the Approve/Deny buttons are. The field's admin page
+    // used to be the target, and it had no way to act on the request.
+    expect(p.url).toBe("/admin/queue");
+  });
+
+  test("maintainerRequest names the requester when there is an email", () => {
+    const p = buildPushPayload({
+      kind: "maintainerRequest",
+      locationId: "loc9",
+      name: "Leddy Park",
+      email: "keeper@example.com",
+    });
+    expect(p.body).toBe("keeper@example.com asked to help maintain Leddy Park.");
   });
 
   test("pendingDigest singularises one submission", () => {

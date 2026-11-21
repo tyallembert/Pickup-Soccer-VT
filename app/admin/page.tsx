@@ -6,16 +6,22 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import {
   CheckCircle2,
+  ChevronRight,
   Hourglass,
   ListChecks,
   Shield,
+  UserPlus,
   XCircle,
 } from "lucide-react";
 import { useAdminData } from "./AdminDataProvider";
 import { AdminSkeleton } from "./AdminSkeleton";
 
 export default function AdminOverview() {
-  const { allLocations: all, isLoading } = useAdminData();
+  const {
+    allLocations: all,
+    pendingMaintainers,
+    isLoading,
+  } = useAdminData();
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -65,6 +71,30 @@ export default function AdminOverview() {
         </p>
       </header>
 
+      {pendingMaintainers && pendingMaintainers.length > 0 ? (
+        <Link
+          href="/admin/queue"
+          className="admin-anim flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm transition hover:border-amber-400 hover:bg-amber-100 active:scale-[0.99] dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+            <UserPlus className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              {pendingMaintainers.length === 1
+                ? "1 co-maintainer request"
+                : `${pendingMaintainers.length} co-maintainer requests`}
+            </span>
+            <span className="block truncate text-xs opacity-80">
+              {pendingMaintainers.length === 1
+                ? `${pendingMaintainers[0].email || "Someone"} wants to help run ${pendingMaintainers[0].locationName}`
+                : "Approve or deny them in Approvals"}
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 opacity-60" />
+        </Link>
+      ) : null}
+
       {/* Stats */}
       <section className="admin-anim grid grid-cols-3 gap-3">
         <StatCard
@@ -73,7 +103,7 @@ export default function AdminOverview() {
           count={counts.pending ?? 0}
           icon={<Hourglass className="h-4 w-4" />}
           href="/admin/queue"
-          cta="Open queue"
+          cta="Open approvals"
         />
         <StatCard
           tone="emerald"

@@ -4,6 +4,7 @@ import { ConvexError } from "convex/values";
 import { requireAdmin } from "./lib/auth";
 import { mostRecentPastGameDay, upcomingGameDay } from "./lib/dates";
 import { locationStatus, weatherCondition } from "./schema";
+import type { Id } from "./_generated/dataModel";
 
 export const pendingLocations = query({
   args: {},
@@ -30,18 +31,64 @@ export const pendingLocations = query({
 });
 
 /**
- * Just the number, for the bottom nav's badge. `pendingLocations` joins each
- * row to its owner, which is far too much work for a digit.
+ * Co-maintainer requests waiting on a decision, across every field. Admins can
+ * approve or deny any of them (requirePrimaryOwnerOf lets admins through), so
+ * they all belong on the Approvals screen next to new field submissions.
+ */
+export const pendingMaintainerRequests = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const rows = await ctx.db
+      .query("locationMaintainers")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .take(100);
+    const out: Array<{
+      _id: Id<"locationMaintainers">;
+      locationId: Id<"locations">;
+      locationName: string;
+      locationTown: string;
+      userId: Id<"users">;
+      email: string;
+      requestedAt: number;
+    }> = [];
+    for (const r of rows) {
+      const loc = await ctx.db.get(r.locationId);
+      // A request for a deleted field has nothing left to approve.
+      if (!loc) continue;
+      const user = await ctx.db.get(r.userId);
+      out.push({
+        _id: r._id,
+        locationId: r.locationId,
+        locationName: loc.name,
+        locationTown: loc.town,
+        userId: r.userId,
+        email: user?.email ?? "",
+        requestedAt: r.requestedAt,
+      });
+    }
+    return out.sort((a, b) => a.requestedAt - b.requestedAt);
+  },
+});
+
+/**
+ * Just the number, for the nav badge: new fields awaiting review plus
+ * co-maintainer requests. The list queries join each row to its owner, which
+ * is far too much work for a digit.
  */
 export const pendingCount = query({
   args: {},
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    const rows = await ctx.db
+    const locations = await ctx.db
       .query("locations")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(100);
-    return rows.length;
+    const maintainers = await ctx.db
+      .query("locationMaintainers")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .take(100);
+    return locations.length + maintainers.length;
   },
 });
 

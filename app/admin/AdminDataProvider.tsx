@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useViewMode } from "@/app/_lib/view-mode";
 
 type Status = "pending" | "approved" | "rejected";
@@ -26,6 +27,16 @@ export type AdminPendingRow = {
   submittedAt: number;
 };
 
+export type AdminMaintainerRequestRow = {
+  _id: Id<"locationMaintainers">;
+  locationId: Id<"locations">;
+  locationName: string;
+  locationTown: string;
+  userId: Id<"users">;
+  email: string;
+  requestedAt: number;
+};
+
 export type AdminUserRow = {
   _id: string;
   name: string | null;
@@ -40,6 +51,7 @@ export type AdminUserRow = {
 type AdminData = {
   allLocations: AdminLocationRow[] | undefined;
   pendingLocations: AdminPendingRow[] | undefined;
+  pendingMaintainers: AdminMaintainerRequestRow[] | undefined;
   allUsers: AdminUserRow[] | undefined;
   isLoading: boolean;
   isReady: boolean;
@@ -66,6 +78,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const pendingLocations = useQuery(api.admin.pendingLocations) as
     | AdminPendingRow[]
     | undefined;
+  const pendingMaintainers = useQuery(api.admin.pendingMaintainerRequests);
   const allUsers = useQuery(api.admin.allUsers) as
     | AdminUserRow[]
     | undefined;
@@ -73,6 +86,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const isLoading =
     allLocations === undefined ||
     pendingLocations === undefined ||
+    pendingMaintainers === undefined ||
     allUsers === undefined;
 
   return (
@@ -80,6 +94,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       value={{
         allLocations,
         pendingLocations,
+        pendingMaintainers,
         allUsers,
         isLoading,
         isReady: !isLoading,

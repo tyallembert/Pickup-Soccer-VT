@@ -41,6 +41,7 @@ export const requestMaintainership = mutation({
         kind: "maintainerRequest",
         locationId,
         name: location.name,
+        email: user.email,
       },
       excludeUserId: user._id,
     });

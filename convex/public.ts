@@ -211,6 +211,14 @@ export const myLocations = query({
           .query("locationSchedules")
           .withIndex("by_location", (q) => q.eq("locationId", r._id))
           .collect();
+        // Shown on the owner's field list, so a request doesn't sit unseen
+        // behind the field's Maintainers tab.
+        const pendingMaintainers = await ctx.db
+          .query("locationMaintainers")
+          .withIndex("by_location_and_status", (q) =>
+            q.eq("locationId", r._id).eq("status", "pending"),
+          )
+          .take(20);
         return {
           _id: r._id,
           name: r.name,
@@ -218,6 +226,7 @@ export const myLocations = query({
           status: r.status,
           rejectionReason: r.rejectionReason,
           submittedAt: r.submittedAt,
+          pendingMaintainerCount: pendingMaintainers.length,
           schedules: schedules.map((s) => ({
             _id: s._id,
             dayOfWeek: s.dayOfWeek,
