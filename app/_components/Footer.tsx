@@ -26,7 +26,8 @@ export function Footer() {
   );
 
   return (
-    <footer className="relative mt-auto overflow-hidden bg-zinc-950 text-zinc-200">
+    // An app has no site footer; the tab bar covers the same links.
+    <footer className="relative mt-auto overflow-hidden bg-zinc-950 text-zinc-200 app:hidden">
       {/* Top emerald edge */}
       <div className="absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
       <div

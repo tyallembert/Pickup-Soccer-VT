@@ -1,18 +1,66 @@
 /* Vermont Pickup Soccer service worker.
  *
- * Deliberately minimal: push delivery and notification clicks only. There is no
- * fetch handler and no cache. The app's data comes from Convex over a realtime
- * subscription, so cached pages would only ever show stale fields and schedules.
+ * Deliberately small: push delivery, notification clicks, and an offline
+ * screen. Nothing else is cached. The app's data comes from Convex over a
+ * realtime subscription, so cached pages would only ever show stale fields and
+ * schedules. Page loads always go to the network; only when that fails does
+ * the installed app show offline.html instead of the browser's error page.
  */
+
+const OFFLINE_CACHE = "vtps-offline-v1";
+const OFFLINE_URL = "/offline.html";
+const OFFLINE_ASSETS = [OFFLINE_URL, "/icon-192.png"];
 
 // Take over immediately so a redeploy reaches users without them closing every
 // tab — a stale worker would keep showing the previous notification format.
-self.addEventListener("install", () => {
-  self.skipWaiting();
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(OFFLINE_CACHE)
+      .then((cache) => cache.addAll(OFFLINE_ASSETS))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== OFFLINE_CACHE).map((k) => caches.delete(k)),
+      );
+      // Start the page request while the worker boots, so routing page loads
+      // through it costs nothing.
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable();
+      }
+      await self.clients.claim();
+    })(),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method === "GET" && request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          const preloaded = await event.preloadResponse;
+          return preloaded || (await fetch(request));
+        } catch {
+          const offline = await caches.match(OFFLINE_URL);
+          return offline || Response.error();
+        }
+      })(),
+    );
+    return;
+  }
+  // The offline page's icon, when the network is gone.
+  if (request.method === "GET" && OFFLINE_ASSETS.includes(new URL(request.url).pathname)) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request).then((r) => r || Response.error())),
+    );
+  }
 });
 
 self.addEventListener("push", (event) => {

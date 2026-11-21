@@ -181,7 +181,7 @@ export function OwnerLocationClient({
 
   if (isLoading) {
     return (
-      <main ref={root} className="mx-auto w-full max-w-2xl px-6 pt-24 pb-12">
+      <main ref={root} className="mx-auto w-full max-w-2xl px-6 pt-24 pb-12 app:px-4 app:pt-4">
         <div className="h-32 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
       </main>
     );
@@ -192,7 +192,7 @@ export function OwnerLocationClient({
   return (
     <main
       ref={root}
-      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 pt-24 pb-12"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 pt-24 pb-12 app:gap-4 app:px-4 app:pt-4 app:pb-6"
     >
       {/* Header card matching the submit-form aesthetic */}
       <header

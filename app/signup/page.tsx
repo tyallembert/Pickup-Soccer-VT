@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function SignUpPage() {
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full flex-col items-center justify-center px-6 py-16">
+    <div className="relative mx-auto flex min-h-dvh w-full flex-col items-center justify-center px-6 py-16 app:min-h-0 app:justify-start app:px-4 app:py-8">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"

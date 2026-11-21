@@ -19,7 +19,7 @@ export default async function AdminLayout({
   if (!me || me.role !== "admin") redirect("/");
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-24 pb-12">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-24 pb-12 app:gap-4 app:px-4 app:pt-4 app:pb-6">
       <InstallPrompt />
       <AdminDataProvider>{children}</AdminDataProvider>
     </div>

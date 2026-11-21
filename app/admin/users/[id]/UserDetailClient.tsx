@@ -216,7 +216,7 @@ function BackLink() {
   return (
     <Link
       href="/admin/users"
-      className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 transition hover:text-emerald-600 dark:text-zinc-400"
+      className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 transition hover:text-emerald-600 app:hidden dark:text-zinc-400"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
       All users

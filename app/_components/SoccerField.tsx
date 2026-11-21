@@ -558,8 +558,9 @@ export function SoccerField({ height = 560 }: Props) {
       />
 
       {/* Text panel — top 48% on mobile, left 48% on desktop.
-          pt-20 on mobile clears the fixed top nav (top-4 + ~h-10). */}
-      <div className="hero-content relative z-10 flex h-[48%] max-w-full flex-col justify-center px-5 pb-3 pt-20 sm:h-full sm:max-w-[48%] sm:px-12 sm:pb-0 sm:pt-0">
+          pt-20 on mobile clears the fixed top nav (top-4 + ~h-10); the
+          installed app's top bar sits above the hero instead. */}
+      <div className="hero-content relative z-10 flex h-[48%] max-w-full flex-col justify-center px-5 pb-3 pt-20 app:pt-4 sm:h-full sm:max-w-[48%] sm:px-12 sm:pb-0 sm:pt-0">
         <p className="hero-line text-[10px] uppercase tracking-[0.35em] text-emerald-300/80 sm:text-[11px] sm:tracking-[0.4em]">
           Vermont · Pickup
         </p>
