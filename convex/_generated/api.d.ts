@@ -22,6 +22,7 @@ import type * as push from "../push.js";
 import type * as pushNode from "../pushNode.js";
 import type * as seedAdmin from "../seedAdmin.js";
 import type * as seedAdminHelpers from "../seedAdminHelpers.js";
+import type * as seedLocations from "../seedLocations.js";
 import type * as submissions from "../submissions.js";
 
 import type {
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   pushNode: typeof pushNode;
   seedAdmin: typeof seedAdmin;
   seedAdminHelpers: typeof seedAdminHelpers;
+  seedLocations: typeof seedLocations;
   submissions: typeof submissions;
 }>;
 
