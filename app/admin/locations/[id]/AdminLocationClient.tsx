@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   Trash2,
+  Users,
   XCircle,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -22,13 +23,14 @@ import { SettingsForm } from "@/app/_components/SettingsForm";
 import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
 import { SchedulesEditor } from "@/app/_components/SchedulesEditor";
+import { MaintainersPanel } from "@/app/_components/MaintainersPanel";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
 import { upcomingGameDay, mostRecentPastGameDay } from "@/convex/lib/dates";
 
 type Status = "pending" | "approved" | "rejected";
-type Tab = "details" | "thisWeek" | "lastSession";
+export type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
 
 const HEADER_THEME: Record<
   Status,
@@ -57,7 +59,14 @@ const HEADER_THEME: Record<
   },
 };
 
-export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
+export function AdminLocationClient({
+  id,
+  initialTab,
+}: {
+  id: Id<"locations">;
+  /** From `?tab=`, so a link can open straight onto Maintainers. */
+  initialTab?: Tab;
+}) {
   const data = useQuery(api.admin.adminGetLocation, { id });
   const update = useMutation(api.admin.adminUpdateLocation);
   const setStatus = useMutation(api.admin.adminSetScheduleStatus);
@@ -67,12 +76,19 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
   const del = useMutation(api.admin.deleteLocation);
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [tab, setTab] = useState<Tab>("details");
+  const [requestedTab, setTab] = useState<Tab>(initialTab ?? "details");
 
   const status = (data?.status ?? "pending") as Status;
+  // Same subscription MaintainersPanel opens, so the client shares it.
+  const maintainers = useQuery(
+    api.maintainers.listMaintainersForLocation,
+    status === "approved" ? { locationId: id } : "skip",
+  );
+  const pendingMaintainers =
+    maintainers?.filter((m) => m.status === "pending").length ?? 0;
   const tabItems = useMemo<SegmentedTab<Tab>[]>(() => {
     const items: SegmentedTab<Tab>[] = [
-      { value: "details", label: "Field details", icon: <Settings className="h-3.5 w-3.5" /> },
+      { value: "details", label: "Field details", shortLabel: "Details", icon: <Settings className="h-3.5 w-3.5" /> },
     ];
     if (status === "approved") {
       items.push({
@@ -83,15 +99,27 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
       items.push({
         value: "lastSession",
         label: "Last session",
+        shortLabel: "Last game",
         icon: <ClipboardList className="h-3.5 w-3.5" />,
+      });
+      items.push({
+        value: "maintainers",
+        label: "Maintainers",
+        shortLabel: "Helpers",
+        icon: <Users className="h-3.5 w-3.5" />,
+        badge: pendingMaintainers,
       });
     }
     return items;
-  }, [status]);
+  }, [status, pendingMaintainers]);
 
-  useEffect(() => {
-    if (!tabItems.some((t) => t.value === tab)) setTab("details");
-  }, [tabItems, tab]);
+
+  // A tab this field doesn't have (yet) shows Field details. Derived, not
+  // reset in an effect, so a ?tab=maintainers link survives the loading
+  // render, when only Field details exists.
+  const tab: Tab = tabItems.some((t) => t.value === requestedTab)
+    ? requestedTab
+    : "details";
 
   const root = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -283,6 +311,16 @@ export function AdminLocationClient({ id }: { id: Id<"locations"> }) {
                 </div>
               ))}
             </div>
+          </PanelCard>
+        ) : null}
+
+        {tab === "maintainers" && status === "approved" ? (
+          <PanelCard
+            eyebrow="Maintainers"
+            title="Who helps run this field"
+            subtitle="Approve or deny requests, or revoke access. Owners can do the same from their field page."
+          >
+            <MaintainersPanel locationId={id} locationName={data.name} />
           </PanelCard>
         ) : null}
 

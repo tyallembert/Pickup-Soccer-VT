@@ -12,6 +12,7 @@ import {
   Plus,
   Shield,
   ShieldCheck,
+  UserPlus,
   XCircle,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -117,7 +118,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
           <span className="flex-1 min-w-0">
             <span className="font-semibold">Admin tools</span>
             <span className="mt-0.5 block text-xs text-emerald-800/70 sm:ml-2 sm:mt-0 sm:inline sm:text-sm dark:text-emerald-200/70">
-              Review the moderation queue and manage approved fields.
+              Approve new fields and co-maintainer requests, and manage the directory.
             </span>
           </span>
           <span className="text-emerald-700 dark:text-emerald-300">→</span>
@@ -172,7 +173,11 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
             {locations.map((l) => (
               <li key={l._id}>
                 <Link
-                  href={`/account/locations/${l._id}`}
+                  href={
+                    l.pendingMaintainerCount > 0
+                      ? `/account/locations/${l._id}?tab=maintainers`
+                      : `/account/locations/${l._id}`
+                  }
                   className="group flex items-center gap-3 px-4 py-3 transition hover:bg-zinc-50 sm:px-5 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
@@ -190,6 +195,14 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                         {l.status}
                       </span>
                     </div>
+                    {l.pendingMaintainerCount > 0 ? (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                        <UserPlus className="h-3 w-3" />
+                        {l.pendingMaintainerCount === 1
+                          ? "1 co-maintainer request"
+                          : `${l.pendingMaintainerCount} co-maintainer requests`}
+                      </p>
+                    ) : null}
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
                       {l.schedules[0]

@@ -12,19 +12,7 @@ import posthog from "posthog-js";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const minutes = Math.round(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.round(days / 30);
-  return `${months}mo ago`;
-}
+import { formatRelativeTime } from "@/app/_lib/format";
 
 export function MaintainersPanel({
   locationId,
@@ -74,7 +62,7 @@ export function MaintainersPanel({
             {pending.map((m) => (
               <li
                 key={m._id}
-                className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2.5 dark:border-amber-900 dark:bg-amber-950/30"
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2.5 dark:border-amber-900 dark:bg-amber-950/30"
               >
                 <Avatar className="h-9 w-9 shrink-0">
                   <AvatarFallback className="bg-amber-500 text-xs text-white">
@@ -86,10 +74,10 @@ export function MaintainersPanel({
                     {m.email || "Unknown user"}
                   </p>
                   <p className="text-[11px] text-zinc-500">
-                    Requested {relativeTime(m.requestedAt)}
+                    Requested {formatRelativeTime(m.requestedAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 max-sm:w-full max-sm:pl-12">
                   <button
                     type="button"
                     onClick={async () => {
@@ -99,7 +87,7 @@ export function MaintainersPanel({
                         location_name: locationName,
                       });
                     }}
-                    className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow transition hover:bg-emerald-700"
+                    className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow transition hover:bg-emerald-700 max-sm:flex-1 max-sm:py-2 max-sm:text-xs"
                     aria-label="Approve maintainer"
                   >
                     <Check className="h-3 w-3" />
@@ -114,7 +102,7 @@ export function MaintainersPanel({
                         location_name: locationName,
                       });
                     }}
-                    className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                    className="inline-flex items-center justify-center gap-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-sm max-sm:flex-1 max-sm:py-2 max-sm:text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
                     aria-label="Deny maintainer"
                   >
                     <X className="h-3 w-3" />
@@ -163,7 +151,7 @@ export function MaintainersPanel({
                     {m.email || "Unknown user"}
                   </p>
                   <p className="text-[11px] text-zinc-500">
-                    Approved {m.approvedAt ? relativeTime(m.approvedAt) : ""}
+                    Approved {m.approvedAt ? formatRelativeTime(m.approvedAt) : ""}
                   </p>
                 </div>
                 <button

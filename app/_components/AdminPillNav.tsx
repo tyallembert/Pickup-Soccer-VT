@@ -7,8 +7,8 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Eye,
   EyeOff,
+  Inbox,
   Layers,
-  ListChecks,
   LogOut,
   Shield,
   User,
@@ -35,8 +35,8 @@ const ADMIN_ITEMS: Item[] = [
   },
   {
     href: "/admin/queue",
-    label: "Queue",
-    icon: ListChecks,
+    label: "Approvals",
+    icon: Inbox,
     match: (p) => p.startsWith("/admin/queue"),
   },
   {
@@ -67,6 +67,10 @@ export function AdminPillNav() {
   const me = useQuery(api.public.me, isAuthenticated ? {} : "skip");
   const { signOut } = useAuthActions();
   const { viewAsUser, setViewAsUser } = useViewMode();
+  const pendingCount = useQuery(
+    api.admin.pendingCount,
+    me?.role === "admin" && !viewAsUser ? {} : "skip",
+  );
 
   if (isLoading || !isAuthenticated) return null;
   if (!me || me.role !== "admin") return null;
@@ -107,6 +111,7 @@ export function AdminPillNav() {
             key={item.href}
             item={item}
             active={item.match(pathname)}
+            badge={item.href === "/admin/queue" ? pendingCount : undefined}
           />
         ))}
 
@@ -149,7 +154,15 @@ export function AdminPillNav() {
   );
 }
 
-function NavTile({ item, active }: { item: Item; active: boolean }) {
+function NavTile({
+  item,
+  active,
+  badge,
+}: {
+  item: Item;
+  active: boolean;
+  badge?: number;
+}) {
   const Icon = item.icon;
   return (
     <Link
@@ -165,7 +178,14 @@ function NavTile({ item, active }: { item: Item; active: boolean }) {
           : "text-white/70 hover:bg-white/10 hover:text-white",
       )}
     >
-      <Icon className="h-4 w-4" />
+      <span className="relative">
+        <Icon className="h-4 w-4" />
+        {badge ? (
+          <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-black/60">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ) : null}
+      </span>
       <span>{item.label}</span>
     </Link>
   );
