@@ -1,0 +1,27 @@
+# TLS front door for the dev stack (see compose.yaml). Every site is the
+# machine's Tailscale name on its own port; Caddy gets the *.ts.net
+# certificate from tailscaled through the mounted socket.
+{
+	# Nothing listens on 443, so skip the :80 HTTP->HTTPS redirect listener.
+	auto_https disable_redirects
+}
+
+# Next.js dev server (HMR websockets pass straight through).
+{$DEV_HOST}:{$WEB_PORT} {
+	reverse_proxy web:3000
+}
+
+# Convex client API: NEXT_PUBLIC_CONVEX_URL.
+{$DEV_HOST}:{$CONVEX_PORT} {
+	reverse_proxy backend:3210
+}
+
+# Convex HTTP actions (convex/http.ts) and the Convex Auth JWKS.
+{$DEV_HOST}:{$SITE_PORT} {
+	reverse_proxy backend:3211
+}
+
+# Convex dashboard.
+{$DEV_HOST}:{$DASHBOARD_PORT} {
+	reverse_proxy dashboard:6791
+}

@@ -1,0 +1,151 @@
+# Dev stack: a self-hosted Convex backend + dashboard, `convex dev` pushing
+# functions on save, the Next.js dev server, and Caddy serving all of it over
+# HTTPS on this machine's Tailscale name (tailnet-only).
+#
+#   dev/setup.sh                                   # first run; safe to re-run
+#   docker compose up -d                           # every run after that
+#   docker compose logs -f web convex              # Next + Convex function logs
+#   docker compose exec convex npx convex <cmd>    # any Convex CLI command
+#   docker compose down                            # stop; data stays in convex-data
+#
+# Then open https://$DEV_HOST:$WEB_PORT (app) and :$DASHBOARD_PORT (Convex).
+#
+# Why HTTPS and Caddy: Convex Auth marks its cookies Secure (with a __Host-
+# prefix) on any host that isn't localhost, so over plain HTTP, sign-in
+# "succeeds" and you're still signed out. Caddy gets a real cert for the
+# tailnet name from tailscaled, and the same name resolves to Caddy inside
+# this network, so the browser and the Next server share one Convex URL.
+#
+# Machine settings (tailnet name, ports, keys) live in .env (git-ignored);
+# dev/setup.sh writes it from .env.example.
+
+x-node: &node
+  image: node:24-bookworm-slim
+  # uid 1000 is the host user, so node_modules/.next/.env.local stay yours.
+  # Same glibc + Node major as the host, so node_modules works on both sides.
+  user: node
+  working_dir: /app
+  init: true
+  volumes:
+    - .:/app
+    # npm cache. Mounted at $HOME so the volume inherits the node user's
+    # ownership from the image.
+    - node-home:/home/node
+
+x-node-env: &node-env
+  NEXT_TELEMETRY_DISABLED: "1"
+
+services:
+  caddy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    ports:
+      - "${DEV_BIND_IP:?run dev/setup.sh first (it writes .env)}:${WEB_PORT:-8444}:${WEB_PORT:-8444}"
+      - "${DEV_BIND_IP}:${CONVEX_PORT:-8445}:${CONVEX_PORT:-8445}"
+      - "${DEV_BIND_IP}:${SITE_PORT:-8446}:${SITE_PORT:-8446}"
+      - "${DEV_BIND_IP}:${DASHBOARD_PORT:-8447}:${DASHBOARD_PORT:-8447}"
+    environment:
+      DEV_HOST: ${DEV_HOST:?run dev/setup.sh first (it writes .env)}
+      WEB_PORT: ${WEB_PORT:-8444}
+      CONVEX_PORT: ${CONVEX_PORT:-8445}
+      SITE_PORT: ${SITE_PORT:-8446}
+      DASHBOARD_PORT: ${DASHBOARD_PORT:-8447}
+    volumes:
+      - ./dev/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      # Caddy fetches (and renews) the *.ts.net certificate from tailscaled.
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+    networks:
+      default:
+        # Containers that dial https://$DEV_HOST land here too.
+        aliases:
+          - ${DEV_HOST}
+
+  backend:
+    image: ghcr.io/convex/convex-backend:3d585751a2de8c9066dc3fc5ac18340c1ef48810
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    volumes:
+      # SQLite database, file storage, and the instance secret the admin key
+      # is derived from. `docker compose down -v` wipes all of it.
+      - convex-data:/convex/data
+    environment:
+      CONVEX_CLOUD_ORIGIN: https://${DEV_HOST}:${CONVEX_PORT:-8445}
+      # Also the Convex Auth JWT issuer: the backend fetches its own JWKS from
+      # here (through Caddy), so it must resolve inside this network.
+      CONVEX_SITE_ORIGIN: https://${DEV_HOST}:${SITE_PORT:-8446}
+      DISABLE_BEACON: "true"
+      DOCUMENT_RETENTION_DELAY: "172800"
+      RUST_LOG: ${CONVEX_RUST_LOG:-info}
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+
+  dashboard:
+    image: ghcr.io/convex/convex-dashboard:3d585751a2de8c9066dc3fc5ac18340c1ef48810
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: https://${DEV_HOST}:${CONVEX_PORT:-8445}
+      # Pre-fills the login form. Dev data, tailnet-only.
+      NEXT_PUBLIC_ADMIN_KEY: ${CONVEX_ADMIN_KEY:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # One-shot: installs node_modules when package-lock.json is newer than the
+  # last install, then exits. Runs on every `up`; a no-op most of the time.
+  deps:
+    <<: *node
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - '[ node_modules/.package-lock.json -nt package-lock.json ] || npm install --no-audit --no-fund'
+
+  # `npx convex dev`: pushes convex/ to the backend on every save, regenerates
+  # convex/_generated, and tails function logs.
+  convex:
+    <<: *node
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - '[ -n "$$CONVEX_SELF_HOSTED_ADMIN_KEY" ] || { echo "CONVEX_ADMIN_KEY is empty: run dev/setup.sh" >&2; exit 1; }; exec npx convex dev'
+    environment:
+      <<: *node-env
+      # The public URL, not http://backend:3210: `convex dev` writes it to
+      # .env.local as NEXT_PUBLIC_CONVEX_URL.
+      CONVEX_SELF_HOSTED_URL: https://${DEV_HOST}:${CONVEX_PORT:-8445}
+      CONVEX_SELF_HOSTED_ADMIN_KEY: ${CONVEX_ADMIN_KEY:-}
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      backend:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+
+  web:
+    <<: *node
+    restart: unless-stopped
+    command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+    environment:
+      <<: *node-env
+      NEXT_PUBLIC_CONVEX_URL: https://${DEV_HOST}:${CONVEX_PORT:-8445}
+      NEXT_PUBLIC_SITE_URL: https://${DEV_HOST}:${WEB_PORT:-8444}
+      # next.config.ts adds it to allowedDevOrigins.
+      DEV_HOST: ${DEV_HOST}
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      caddy:
+        condition: service_started
+
+volumes:
+  convex-data:
+  caddy-data:
+  node-home:
