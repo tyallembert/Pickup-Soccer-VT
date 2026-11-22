@@ -7,6 +7,11 @@ import type { Map as LeafletMap } from "leaflet";
 import { LocateFixed, ZoomIn, ZoomOut } from "lucide-react";
 import gsap from "gsap";
 import { formatDayPlural, formatTimeRange } from "../_lib/format";
+import {
+  BASEMAP_ATTRIBUTION,
+  BASEMAP_SUBDOMAINS,
+  BASEMAP_TILE_URL,
+} from "../_lib/basemap";
 import { VERMONT_LEAFLET_MAX_BOUNDS, VERMONT_RING_LATLNG } from "../_lib/vermont";
 
 export type MapSchedule = {
@@ -148,9 +153,9 @@ export default function LocationsMapClient({
         style={{ height: "100%", width: "100%", background: "#f6f5ee" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
+          attribution={BASEMAP_ATTRIBUTION}
+          url={BASEMAP_TILE_URL}
+          subdomains={BASEMAP_SUBDOMAINS}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
         />
