@@ -945,7 +945,7 @@ function WhereStep() {
         <span className="font-medium text-zinc-800 dark:text-zinc-200">
           Map pin
         </span>
-        <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div>
           <LocationPin
             lat={draft.lat}
             lng={draft.lng}

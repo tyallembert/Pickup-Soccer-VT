@@ -65,7 +65,7 @@ export function SegmentedTabs<T extends string>({
             onClick={() => onChange(it.value)}
             title={it.hint}
             className={cn(
-              "relative z-10 flex min-w-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition-colors",
+              "relative z-10 flex min-w-0 items-center justify-center gap-1.5 rounded-full min-h-10 px-3 py-2.5 text-xs font-semibold tracking-wide transition-colors",
               crowded && "max-sm:gap-1 max-sm:px-1.5 max-sm:text-[11px] max-sm:tracking-normal max-sm:[&>svg]:hidden",
               active
                 ? "text-white"

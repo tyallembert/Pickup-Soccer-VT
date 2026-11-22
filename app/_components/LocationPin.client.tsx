@@ -119,7 +119,7 @@ export default function LocationPinClient({
             onClick={onZoomIn}
             aria-label="Zoom in"
             title="Zoom in"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
           >
             <ZoomIn size={18} strokeWidth={2.25} />
           </button>
@@ -128,7 +128,7 @@ export default function LocationPinClient({
             onClick={onZoomOut}
             aria-label="Zoom out"
             title="Zoom out"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
           >
             <ZoomOut size={18} strokeWidth={2.25} />
           </button>
@@ -138,7 +138,7 @@ export default function LocationPinClient({
             onClick={onReset}
             aria-label="Recenter on pin"
             title="Recenter on pin"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-700 transition hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-emerald-900/50"
           >
             <LocateFixed size={18} strokeWidth={2.25} />
           </button>

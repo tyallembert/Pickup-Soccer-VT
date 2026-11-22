@@ -125,9 +125,11 @@ function UserListRow({ user }: { user: AdminUserRow }) {
             </p>
             {user.role === "admin" ? <AdminPill /> : null}
           </div>
-          <p className="mt-0.5 truncate text-xs text-zinc-500">
-            {user.email ?? "No email"}
-          </p>
+          {user.email !== display ? (
+            <p className="mt-0.5 truncate text-xs text-zinc-500">
+              {user.email ?? "No email"}
+            </p>
+          ) : null}
         </div>
         <div className="hidden flex-col items-end gap-0.5 text-right sm:flex">
           <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">

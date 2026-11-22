@@ -88,9 +88,9 @@ export function SlotCard({
                   type="button"
                   onClick={onRemove}
                   aria-label={`Remove slot ${slotNumber}`}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                  className="-m-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600 active:bg-rose-50 active:text-rose-600 dark:text-zinc-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>Remove this time</TooltipContent>
@@ -104,7 +104,7 @@ export function SlotCard({
           ariaLabel={`Day for slot ${slotNumber}`}
         />
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
           <TimeColumn
             label="Start"
             value={row.startTime}
@@ -112,7 +112,7 @@ export function SlotCard({
           />
           <span
             className={cn(
-              "mt-3 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest tabular-nums transition",
+              "mt-4 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider tabular-nums transition",
               duration
                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
                 : "bg-zinc-100 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600",
@@ -145,11 +145,11 @@ function TimeColumn({
   optional?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-0.5">
-      <span className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+    <label className="flex min-w-0 flex-col gap-1">
+      <span className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
         {label}
         {optional ? (
-          <span className="text-[8px] font-semibold uppercase tracking-wider text-zinc-400">
+          <span className="text-[10px] font-semibold normal-case tracking-normal text-zinc-500 dark:text-zinc-400">
             optional
           </span>
         ) : null}
@@ -158,7 +158,7 @@ function TimeColumn({
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 px-2 text-center text-xs font-bold tabular-nums"
+        className="h-10 w-full min-w-0 px-2 text-center text-sm font-bold tabular-nums"
       />
     </label>
   );

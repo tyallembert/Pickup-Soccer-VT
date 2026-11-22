@@ -87,7 +87,7 @@ export function MaintainersPanel({
                         location_name: locationName,
                       });
                     }}
-                    className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow transition hover:bg-emerald-700 max-sm:flex-1 max-sm:py-2 max-sm:text-xs"
+                    className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow transition hover:bg-emerald-700 max-sm:h-10 max-sm:flex-1 max-sm:py-0 max-sm:text-sm"
                     aria-label="Approve maintainer"
                   >
                     <Check className="h-3 w-3" />
@@ -102,7 +102,7 @@ export function MaintainersPanel({
                         location_name: locationName,
                       });
                     }}
-                    className="inline-flex items-center justify-center gap-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-sm max-sm:flex-1 max-sm:py-2 max-sm:text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                    className="inline-flex items-center justify-center gap-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-sm max-sm:h-10 max-sm:flex-1 max-sm:py-0 max-sm:text-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
                     aria-label="Deny maintainer"
                   >
                     <X className="h-3 w-3" />
@@ -171,7 +171,7 @@ export function MaintainersPanel({
                       location_name: locationName,
                     });
                   }}
-                  className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/30"
+                  className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-rose-700 max-sm:h-10 max-sm:py-0 max-sm:text-sm shadow-sm transition hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/30"
                 >
                   Revoke
                 </button>

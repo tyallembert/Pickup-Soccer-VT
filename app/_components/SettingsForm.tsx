@@ -99,7 +99,7 @@ export function SettingsForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-600/30 transition hover:scale-[1.02] disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white shadow-md shadow-emerald-600/30 transition hover:scale-[1.02] disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save settings"}
         </button>

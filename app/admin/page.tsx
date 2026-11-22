@@ -132,7 +132,7 @@ export default function AdminOverview() {
           </div>
           <Link
             href="/admin/locations"
-            className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            className="inline-flex h-10 items-center gap-1 rounded-full border border-zinc-200 px-3.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
             <ListChecks className="h-3.5 w-3.5" />
             View all
@@ -151,7 +151,7 @@ export default function AdminOverview() {
                   className="flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{r.name}</p>
+                    <p className="line-clamp-2 break-words leading-snug text-sm font-semibold">{r.name}</p>
                     <p className="truncate text-xs text-zinc-500">{r.town}</p>
                   </div>
                   <StatusPill status={r.status} />
