@@ -95,6 +95,7 @@ Created by `dev/setup.sh` from `.env.example`; git-ignored.
 | `WEB_PORT`, `CONVEX_PORT`, `SITE_PORT`, `DASHBOARD_PORT` | HTTPS ports (default 8444–8447). |
 | `CONVEX_ADMIN_KEY` | Self-hosted backend admin key, derived from the instance secret in the `convex-data` volume. |
 | `DEV_ADMIN_EMAIL`, `DEV_ADMIN_PASSWORD` | The seeded admin login. |
+| `CARTO_BASEMAPS_KEY` | Map tile key, passed to the app as `NEXT_PUBLIC_CARTO_BASEMAPS_KEY`. Blank shows placeholder tiles. |
 
 `convex dev` also writes `.env.local` (`NEXT_PUBLIC_CONVEX_URL`,
 `NEXT_PUBLIC_CONVEX_SITE_URL`). Leave it alone.
@@ -106,6 +107,7 @@ Created by `dev/setup.sh` from `.env.example`; git-ignored.
 | `NEXT_PUBLIC_CONVEX_URL` | yes | Convex deployment URL, used by the browser and the server. |
 | `NEXT_PUBLIC_SITE_URL` | no | Canonical URL for metadata, OG images, sitemap, and robots. Defaults to `https://vermontpickupsoccer.com`. |
 | `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | no | Enables PostHog. Unset in dev, so analytics stay clean. |
+| `NEXT_PUBLIC_CARTO_BASEMAPS_KEY` | yes, for maps | CARTO basemaps key ([free, no account](https://carto.com/basemaps/apikey)). Since September 2026 CARTO serves raster tiles only with a key; without it every tile reads "API KEY REQUIRED". It is public by design, so restrict it to the site's hostnames in CARTO's dashboard. Inlined at build time, so changing it needs a redeploy. |
 | `DEV_HOST` | dev only | Added to `allowedDevOrigins` in `next.config.ts`. |
 
 ### Convex deployment (`npx convex env set`)

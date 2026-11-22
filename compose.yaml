@@ -137,6 +137,8 @@ services:
       <<: *node-env
       NEXT_PUBLIC_CONVEX_URL: https://${DEV_HOST}:${CONVEX_PORT:-8445}
       NEXT_PUBLIC_SITE_URL: https://${DEV_HOST}:${WEB_PORT:-8444}
+      # Map tiles; blank means CARTO's "API KEY REQUIRED" placeholder tiles.
+      NEXT_PUBLIC_CARTO_BASEMAPS_KEY: ${CARTO_BASEMAPS_KEY:-}
       # next.config.ts adds it to allowedDevOrigins.
       DEV_HOST: ${DEV_HOST}
     depends_on:

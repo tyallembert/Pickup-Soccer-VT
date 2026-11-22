@@ -6,6 +6,11 @@ import type { LatLngExpression } from "leaflet";
 import { LocateFixed, MapPin, ZoomIn, ZoomOut } from "lucide-react";
 import type { Map as LeafletMap } from "leaflet";
 import { VERMONT_LEAFLET_MAX_BOUNDS } from "../_lib/vermont";
+import {
+  BASEMAP_ATTRIBUTION,
+  BASEMAP_SUBDOMAINS,
+  BASEMAP_TILE_URL,
+} from "../_lib/basemap";
 
 const VT_CENTER: [number, number] = [43.95, -72.65];
 
@@ -163,8 +168,9 @@ export default function LocationPinClient({
           }}
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
+            attribution={BASEMAP_ATTRIBUTION}
+            url={BASEMAP_TILE_URL}
+            subdomains={BASEMAP_SUBDOMAINS}
           />
           <ClickToPlace onPlace={onChange} />
           {hasPin && icon ? (
