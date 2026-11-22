@@ -3,7 +3,8 @@ import { mutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { requireOwnerOf } from "./lib/auth";
 import { mostRecentPastGameDay, upcomingGameDay } from "./lib/dates";
-import { weatherCondition } from "./schema";
+import { isInSeason, lastInSeasonDate, validateSeason } from "./lib/season";
+import { seasonValidator, weatherCondition } from "./schema";
 
 export const updateLocation = mutation({
   args: {
@@ -33,11 +34,21 @@ export const setSchedules = mutation({
         endTime: v.optional(v.string()),
       }),
     ),
+    // Absent leaves the season alone (clients from before seasons); null
+    // makes the field year-round.
+    season: v.optional(v.union(seasonValidator, v.null())),
   },
-  handler: async (ctx, { id, schedules }) => {
+  handler: async (ctx, { id, schedules, season }) => {
     const { location } = await requireOwnerOf(ctx, id);
     if (schedules.length < 1) {
       throw new ConvexError("A location must have at least one schedule.");
+    }
+    if (season) {
+      const problem = validateSeason(season);
+      if (problem) throw new ConvexError(problem);
+    }
+    if (season !== undefined) {
+      await ctx.db.patch(location._id, { season: season ?? undefined });
     }
 
     const existing = await ctx.db
@@ -92,6 +103,9 @@ export const setScheduleStatus = mutation({
       throw new ConvexError("Location must be approved before setting weekly status.");
     }
     const date = upcomingGameDay(new Date(), schedule.dayOfWeek, schedule.startTime);
+    if (!isInSeason(date, location.season)) {
+      throw new ConvexError("That week is outside this field's season.");
+    }
     const existing = await ctx.db
       .query("gameDays")
       .withIndex("by_schedule_and_date", (q) =>
@@ -128,11 +142,12 @@ export const saveScheduleRecap = mutation({
     if (location.status !== "approved") {
       throw new ConvexError("Location must be approved before writing a recap.");
     }
-    const date = mostRecentPastGameDay(
-      new Date(),
-      schedule.dayOfWeek,
-      schedule.startTime,
+    // The last game played: out of season, that's the season's final week.
+    const date = lastInSeasonDate(
+      mostRecentPastGameDay(new Date(), schedule.dayOfWeek, schedule.startTime),
+      location.season,
     );
+    if (!date) throw new ConvexError("This slot has no game in season to recap.");
 
     const patch: Record<string, unknown> = {};
     for (const key of [

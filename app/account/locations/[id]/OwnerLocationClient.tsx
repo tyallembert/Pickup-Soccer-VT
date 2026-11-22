@@ -25,8 +25,13 @@ import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
 import { MaintainersPanel } from "@/app/_components/MaintainersPanel";
 import { SchedulesEditor } from "@/app/_components/SchedulesEditor";
+import { OffSeasonNote } from "@/app/_components/OffSeasonNote";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
-import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import {
+  formatDayPlural,
+  formatSeason,
+  formatStartTime,
+} from "@/app/_lib/format";
 import posthog from "posthog-js";
 
 export type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
@@ -241,6 +246,11 @@ export function OwnerLocationClient({
                 {formatDayPlural(s.dayOfWeek)} at {formatStartTime(s.startTime)}
               </p>
             ))}
+            {data.season ? (
+              <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                Season: {formatSeason(data.season)}
+              </p>
+            ) : null}
           </div>
           {data.details ? (
             <p className="mt-1 line-clamp-3 whitespace-pre-line text-sm text-zinc-700 dark:text-zinc-300">
@@ -373,8 +383,9 @@ export function OwnerLocationClient({
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
-                onSave={async (rows) => {
-                  await setSchedules({ id: data._id, schedules: rows });
+                initialSeason={data.season}
+                onSave={async (rows, season) => {
+                  await setSchedules({ id: data._id, schedules: rows, season });
                 }}
               />
             </div>
@@ -397,14 +408,18 @@ export function OwnerLocationClient({
                     {formatDayPlural(s.dayOfWeek)} ·{" "}
                     {formatStartTime(s.startTime)}
                   </p>
-                  <StatusForm
-                    date={s.thisWeek.date}
-                    isOn={s.thisWeek.isOn}
-                    reason={s.thisWeek.reason}
-                    onSave={async ({ isOn, reason }) => {
-                      await setStatus({ scheduleId: s._id, isOn, reason });
-                    }}
-                  />
+                  {s.thisWeek.inSeason ? (
+                    <StatusForm
+                      date={s.thisWeek.date}
+                      isOn={s.thisWeek.isOn}
+                      reason={s.thisWeek.reason}
+                      onSave={async ({ isOn, reason }) => {
+                        await setStatus({ scheduleId: s._id, isOn, reason });
+                      }}
+                    />
+                  ) : (
+                    <OffSeasonNote date={s.thisWeek.date} season={data.season} />
+                  )}
                 </div>
               ))}
             </div>

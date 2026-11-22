@@ -3,21 +3,23 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { CalendarRange, Plus } from "lucide-react";
+import { Plus, Repeat } from "lucide-react";
 import { TooltipProvider } from "@/app/_components/ui/tooltip";
 import {
   SlotCard,
   type ScheduleRow,
 } from "@/app/_components/SlotCard";
+import { SeasonPicker } from "@/app/_components/SeasonPicker";
+import type { Season } from "@/convex/lib/season";
 
 function rowKey(r: ScheduleRow, fallback: number): string {
   return r._id ?? `new-${fallback}`;
 }
 
-// The "Weekly game times" section. Shared between the submit wizard and the
-// owner/admin SchedulesEditor so both surfaces frame the slot concept the
-// same way. Callers own the rows array and the patch/remove/add callbacks;
-// this component is pure presentation.
+// The "Weekly game times" section, plus the field's season. Shared between the
+// submit wizard and the owner/admin SchedulesEditor so both surfaces frame the
+// slot concept the same way. Callers own the rows array, the season and the
+// callbacks; this component is pure presentation.
 export function SlotsSection({
   rows,
   onPatch,
@@ -25,6 +27,8 @@ export function SlotsSection({
   onAdd,
   description,
   headerSlot,
+  season,
+  onSeasonChange,
 }: {
   rows: ScheduleRow[];
   onPatch: (i: number, patch: Partial<ScheduleRow>) => void;
@@ -32,6 +36,8 @@ export function SlotsSection({
   onAdd: () => void;
   description?: string;
   headerSlot?: React.ReactNode;
+  season: Season | null;
+  onSeasonChange: (next: Season | null) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +64,7 @@ export function SlotsSection({
         <header className="flex flex-col gap-1.5 border-b border-dashed border-emerald-200/70 pb-2.5 dark:border-emerald-900/50">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-300">
-              <CalendarRange className="h-3 w-3" />
+              <Repeat className="h-3 w-3" />
               Weekly game times
             </p>
             {rows.length > 1 ? (
@@ -106,6 +112,8 @@ export function SlotsSection({
             </span>
           </button>
         </div>
+
+        <SeasonPicker value={season} onChange={onSeasonChange} />
       </div>
     </TooltipProvider>
   );

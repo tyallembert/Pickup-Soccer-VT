@@ -1,3 +1,5 @@
+import type { Season, SeasonBoundary } from "@/convex/lib/season";
+
 const DAY_NAMES_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_NAMES_PLURAL = ["Sundays","Mondays","Tuesdays","Wednesdays","Thursdays","Fridays","Saturdays"];
 
@@ -41,4 +43,28 @@ export function formatRelativeTime(ts: number, now: number = Date.now()): string
   const days = Math.round(hours / 24);
   if (days < 30) return `${days}d ago`;
   return `${Math.round(days / 30)}mo ago`;
+}
+
+const MONTHS_LONG = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+export function formatMonth(month: number, short = false) {
+  return (short ? MONTHS_SHORT : MONTHS_LONG)[month - 1] ?? "";
+}
+
+function formatBoundary(b: SeasonBoundary, short: boolean) {
+  const m = formatMonth(b.month, short);
+  return b.day ? `${m} ${b.day}` : m;
+}
+
+/** "April – October", "April 15 – October 31", or with `short` "Apr – Oct". */
+export function formatSeason(season: Season, short = false) {
+  return `${formatBoundary(season.start, short)} – ${formatBoundary(season.end, short)}`;
+}
+
+/** "Thu, Apr 1" for a "YYYY-MM-DD" date. */
+export function formatDateShort(s: string) {
+  const [y, m, d] = s.split("-").map((x) => parseInt(x, 10));
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
 }

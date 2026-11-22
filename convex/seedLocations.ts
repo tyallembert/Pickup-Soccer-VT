@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
-import { locationStatus } from "./schema";
+import { locationStatus, seasonValidator } from "./schema";
 
 /**
  * Seeds a fresh deployment with docs/seed-data/pickup-games.json, owned by the
@@ -22,6 +22,7 @@ export const run = internalMutation({
         lat: v.number(),
         lng: v.number(),
         details: v.string(),
+        season: v.optional(seasonValidator),
         status: locationStatus,
         schedules: v.array(
           v.object({

@@ -3,7 +3,8 @@ import { query, mutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { requireAdmin } from "./lib/auth";
 import { mostRecentPastGameDay, upcomingGameDay } from "./lib/dates";
-import { locationStatus, weatherCondition } from "./schema";
+import { isInSeason, lastInSeasonDate, validateSeason } from "./lib/season";
+import { locationStatus, seasonValidator, weatherCondition } from "./schema";
 import type { Id } from "./_generated/dataModel";
 
 export const pendingLocations = query({
@@ -311,11 +312,20 @@ export const adminSetSchedules = mutation({
         endTime: v.optional(v.string()),
       }),
     ),
+    // Absent leaves the season alone; null makes the field year-round.
+    season: v.optional(v.union(seasonValidator, v.null())),
   },
-  handler: async (ctx, { id, schedules }) => {
+  handler: async (ctx, { id, schedules, season }) => {
     await requireAdmin(ctx);
     if (schedules.length < 1) {
       throw new ConvexError("A location must have at least one schedule.");
+    }
+    if (season) {
+      const problem = validateSeason(season);
+      if (problem) throw new ConvexError(problem);
+    }
+    if (season !== undefined) {
+      await ctx.db.patch(id, { season: season ?? undefined });
     }
     const existing = await ctx.db
       .query("locationSchedules")
@@ -361,7 +371,12 @@ export const adminSetScheduleStatus = mutation({
     await requireAdmin(ctx);
     const schedule = await ctx.db.get(scheduleId);
     if (!schedule) throw new ConvexError("Schedule not found");
+    const location = await ctx.db.get(schedule.locationId);
+    if (!location) throw new ConvexError("Location not found");
     const date = upcomingGameDay(new Date(), schedule.dayOfWeek, schedule.startTime);
+    if (!isInSeason(date, location.season)) {
+      throw new ConvexError("That week is outside this field's season.");
+    }
     const existing = await ctx.db
       .query("gameDays")
       .withIndex("by_schedule_and_date", (q) =>
@@ -395,11 +410,13 @@ export const adminSaveScheduleRecap = mutation({
     await requireAdmin(ctx);
     const schedule = await ctx.db.get(scheduleId);
     if (!schedule) throw new ConvexError("Schedule not found");
-    const date = mostRecentPastGameDay(
-      new Date(),
-      schedule.dayOfWeek,
-      schedule.startTime,
+    const location = await ctx.db.get(schedule.locationId);
+    if (!location) throw new ConvexError("Location not found");
+    const date = lastInSeasonDate(
+      mostRecentPastGameDay(new Date(), schedule.dayOfWeek, schedule.startTime),
+      location.season,
     );
+    if (!date) throw new ConvexError("This slot has no game in season to recap.");
     const patch: Record<string, unknown> = {};
     for (const key of [
       "turnout",

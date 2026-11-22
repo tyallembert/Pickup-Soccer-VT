@@ -15,6 +15,7 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
 import type * as lib_pushPayloads from "../lib/pushPayloads.js";
+import type * as lib_season from "../lib/season.js";
 import type * as maintainers from "../maintainers.js";
 import type * as owner from "../owner.js";
 import type * as public_ from "../public.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/dates": typeof lib_dates;
   "lib/pushPayloads": typeof lib_pushPayloads;
+  "lib/season": typeof lib_season;
   maintainers: typeof maintainers;
   owner: typeof owner;
   public: typeof public_;

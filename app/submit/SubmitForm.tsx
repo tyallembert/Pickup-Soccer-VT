@@ -36,6 +36,7 @@ import { SlotsSection } from "@/app/_components/SlotsSection";
 import { geocodeAddress } from "@/app/_lib/geocode";
 import { VERMONT_TOWNS } from "@/app/_lib/vermont-towns";
 import { cn } from "@/app/_lib/cn";
+import { validateSeason, type Season } from "@/convex/lib/season";
 import {
   Popover,
   PopoverContent,
@@ -61,6 +62,8 @@ type Draft = {
   lat: number | null;
   lng: number | null;
   schedules: ScheduleDraft[];
+  /** null = year-round. */
+  season: Season | null;
   details: string;
 };
 
@@ -73,6 +76,7 @@ const EMPTY_DRAFT: Draft = {
   lat: null,
   lng: null,
   schedules: [EMPTY_SCHEDULE],
+  season: null,
   details: "",
 };
 
@@ -134,6 +138,10 @@ function validateStep(s: number, d: Draft): string | null {
       if (row.endTime && row.endTime <= row.startTime) {
         return `Slot ${i + 1}: end time must be after the start time.`;
       }
+    }
+    if (d.season) {
+      const problem = validateSeason(d.season);
+      if (problem) return `Season: ${problem}`;
     }
   }
   return null;
@@ -198,9 +206,11 @@ function SubmitFormProvider({ children }: { children: React.ReactNode }) {
           } as Record<string, unknown>;
           delete upcast.dayOfWeek;
           delete upcast.startTime;
-          setDraft(upcast as unknown as Draft);
+          setDraft({ ...EMPTY_DRAFT, ...upcast } as unknown as Draft);
         } else {
-          setDraft(parsed as unknown as Draft);
+          // Spread over the defaults so drafts saved before a field existed
+          // (e.g. season) still have it.
+          setDraft({ ...EMPTY_DRAFT, ...parsed } as unknown as Draft);
         }
       } catch {
         // ignore corrupt draft
@@ -322,12 +332,14 @@ function SubmitFormProvider({ children }: { children: React.ReactNode }) {
           startTime: s.startTime,
           endTime: s.endTime,
         })),
+        season: d.season ?? undefined,
       });
       posthog.capture("location_submitted", {
         location_id: id,
         location_name: d.name,
         town: d.town,
         schedule_count: d.schedules.length,
+        seasonal: d.season !== null,
       });
       sessionStorage.removeItem(STORAGE_KEY);
       setStatus("redirecting");
@@ -986,7 +998,9 @@ function WhenStep() {
       onPatch={patchRow}
       onRemove={removeRow}
       onAdd={addRow}
-      description="Pick the day and time this pickup happens every week. If it runs more than once a week (say, Tuesdays and Thursdays), add a time for each."
+      season={draft.season}
+      onSeasonChange={(season) => update({ season })}
+      description="Pick the day and time this pickup happens every week. If it runs more than once a week (say, Tuesdays and Thursdays), add a time for each. If it stops for part of the year, mark it seasonal below."
     />
   );
 }

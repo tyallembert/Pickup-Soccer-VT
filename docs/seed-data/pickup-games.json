@@ -9,6 +9,7 @@
       "locations[]": "Each item is shaped like submitLocation args (name, town, address, lat, lng, details, schedules) plus _seedKey / status / _sourceUrl / _organizer / _verifyBefore for the importer.",
       "schedules[]": "Each entry maps 1:1 to a locationSchedules row. dayOfWeek 0=Sunday … 6=Saturday. startTime is HH:mm 24-hour, America/New_York.",
       "details": "Markdown. Already includes the source link so attribution survives a plain submitLocation call.",
+      "season": "Optional. { start: { month, day? }, end: { month, day? } }, months 1–12; a missing day means the whole month. Omit for year-round.",
       "ownerId/status/submittedAt/approvedAt": "Importer must set ownerId to the admin user (lookup users by ADMIN_EMAIL), status from the entry's `status` field, submittedAt = Date.now(), and approvedAt = Date.now() for approved entries."
     },
     "consolidations": [
@@ -102,6 +103,7 @@
       "lat": 42.8509,
       "lng": -72.5579,
       "details": "Adult drop-in soccer / futsal in the 3rd-floor gym at the Gibson-Aiken Center. Run by Brattleboro Recreation & Parks. Last reported season ran Oct 2023 – Apr 2024 on Thursdays 7–9 PM — confirm the current season is live before relying on this.\n\n**Organizer:** Brattleboro Recreation & Parks (802-254-5808)\n**Source:** https://www.reformer.com/sports/adult-soccer-futsal-at-brattleboro-recreation-and-parks/article_05d922e8-6467-11ee-bb97-47c676cef454.html",
+      "season": { "start": { "month": 10 }, "end": { "month": 4 } },
       "schedules": [
         { "dayOfWeek": 4, "startTime": "19:00", "endTime": "21:00" }
       ]

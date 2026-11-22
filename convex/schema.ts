@@ -11,6 +11,17 @@ export const weatherCondition = v.union(
   v.literal("cold"),
 );
 
+// A field's yearly season (see convex/lib/season.ts). A boundary without a day
+// is the whole month. No season on a location means it runs year-round.
+export const seasonBoundary = v.object({
+  month: v.number(),
+  day: v.optional(v.number()),
+});
+export const seasonValidator = v.object({
+  start: seasonBoundary,
+  end: seasonBoundary,
+});
+
 export const locationStatus = v.union(
   v.literal("pending"),
   v.literal("approved"),
@@ -46,6 +57,7 @@ export default defineSchema({
     lat: v.number(),
     lng: v.number(),
     details: v.string(), // markdown
+    season: v.optional(seasonValidator),
     ownerId: v.id("users"),
     status: locationStatus,
     rejectionReason: v.optional(v.string()),

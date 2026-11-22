@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { todayInTimezone, upcomingGameDay } from "./lib/dates";
+import { isInSeason, nextInSeasonDate, type Season } from "./lib/season";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -12,7 +13,9 @@ type ScheduleView = {
   dayOfWeek: number;
   startTime: string;
   endTime?: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
+  /** The slot's next weekly occurrence. `inSeason` is false when that date
+   *  falls outside the field's season, so no game happens that week. */
+  thisWeek: { date: string; isOn: boolean; reason?: string; inSeason: boolean };
   lastSession:
     | {
         date: string;
@@ -33,7 +36,33 @@ type PublicLocation = {
   lng: number;
   details: string;
   schedules: ScheduleView[];
+} & SeasonView;
+
+type SeasonView = {
+  season: Season | null;
+  /** Seasonal, and no slot's next occurrence is in season. */
+  offSeason: boolean;
+  /** When off-season: the first in-season game across slots. */
+  resumesOn: string | null;
 };
+
+function seasonView(
+  season: Season | undefined,
+  schedules: ScheduleView[],
+): SeasonView {
+  const offSeason =
+    season !== undefined &&
+    schedules.length > 0 &&
+    schedules.every((s) => !s.thisWeek.inSeason);
+  let resumesOn: string | null = null;
+  if (offSeason) {
+    for (const s of schedules) {
+      const next = nextInSeasonDate(s.thisWeek.date, season);
+      if (next && (resumesOn === null || next < resumesOn)) resumesOn = next;
+    }
+  }
+  return { season: season ?? null, offSeason, resumesOn };
+}
 
 function hasRecap(r: Doc<"gameDays">): boolean {
   return (
@@ -47,6 +76,7 @@ function hasRecap(r: Doc<"gameDays">): boolean {
 async function buildSchedulesForLocation(
   ctx: QueryCtx,
   locationId: Id<"locations">,
+  season: Season | undefined,
   now: Date,
 ): Promise<ScheduleView[]> {
   const schedules = await ctx.db
@@ -85,6 +115,7 @@ async function buildSchedulesForLocation(
           date: upcomingDate,
           isOn,
           reason: isOn ? undefined : upcomingRow?.reason,
+          inSeason: isInSeason(upcomingDate, season),
         },
         lastSession: lastRow
           ? {
@@ -105,7 +136,12 @@ async function buildPublicLocation(
   loc: Doc<"locations">,
   now: Date,
 ): Promise<PublicLocation> {
-  const schedules = await buildSchedulesForLocation(ctx, loc._id, now);
+  const schedules = await buildSchedulesForLocation(
+    ctx,
+    loc._id,
+    loc.season,
+    now,
+  );
   return {
     _id: loc._id,
     name: loc.name,
@@ -115,6 +151,7 @@ async function buildPublicLocation(
     lng: loc.lng,
     details: loc.details,
     schedules,
+    ...seasonView(loc.season, schedules),
   };
 }
 
@@ -246,7 +283,12 @@ export const getMyLocation = query({
     const now = new Date();
     const schedules =
       location.status === "approved"
-        ? await buildSchedulesForLocation(ctx, location._id, now)
+        ? await buildSchedulesForLocation(
+            ctx,
+            location._id,
+            location.season,
+            now,
+          )
         : (
             await ctx.db
               .query("locationSchedules")
@@ -257,12 +299,13 @@ export const getMyLocation = query({
             dayOfWeek: s.dayOfWeek,
             startTime: s.startTime,
             endTime: s.endTime,
-            thisWeek: { date: "", isOn: true },
+            thisWeek: { date: "", isOn: true, inSeason: true },
             lastSession: null,
           }));
     return {
       ...location,
       schedules,
+      ...seasonView(location.season, schedules),
       viewerRole: role,
       viewerIsPrimaryOwner: role === "owner" || role === "admin",
     };

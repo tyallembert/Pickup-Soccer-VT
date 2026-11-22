@@ -9,6 +9,8 @@ import gsap from "gsap";
 import {
   ArrowLeft,
   CalendarDays,
+  CalendarOff,
+  CalendarRange,
   Clock,
   Cloud,
   CloudRain,
@@ -28,7 +30,9 @@ import { LocationPin } from "@/app/_components/LocationPin";
 import { MaintainCTA } from "@/app/_components/MaintainCTA";
 import {
   formatDateLong,
+  formatDateShort,
   formatDayPlural,
+  formatSeason,
   formatTimeRange,
 } from "@/app/_lib/format";
 
@@ -123,19 +127,41 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
       a.thisWeek.date.localeCompare(b.thisWeek.date) ||
       a.startTime.localeCompare(b.startTime),
   );
-  const allOff = upcomingSchedules.every((s) => !s.thisWeek.isOn);
-  const anyOff = upcomingSchedules.some((s) => !s.thisWeek.isOn);
-  const heroFrom = allOff ? "from-amber-700" : "from-emerald-700";
-  const heroVia = allOff ? "via-orange-600" : "via-emerald-600";
-  const heroTo = allOff ? "to-amber-500" : "to-emerald-500";
-  const heroShadow = allOff
-    ? "shadow-[0_20px_60px_rgba(245,158,11,0.22)]"
-    : "shadow-[0_20px_60px_rgba(16,185,129,0.20)]";
-  const heroPillLabel = allOff
-    ? "All cancelled this week"
-    : anyOff
-      ? "Some cancelled this week"
-      : "Game on this week";
+  // Slots whose week falls outside the season have no game to be on or off.
+  const inSeasonSchedules = upcomingSchedules.filter((s) => s.thisWeek.inSeason);
+  const { offSeason } = data;
+  const allOff =
+    !offSeason && inSeasonSchedules.every((s) => !s.thisWeek.isOn);
+  const anyOff = inSeasonSchedules.some((s) => !s.thisWeek.isOn);
+  const heroFrom = offSeason
+    ? "from-slate-700"
+    : allOff
+      ? "from-amber-700"
+      : "from-emerald-700";
+  const heroVia = offSeason
+    ? "via-slate-600"
+    : allOff
+      ? "via-orange-600"
+      : "via-emerald-600";
+  const heroTo = offSeason
+    ? "to-slate-500"
+    : allOff
+      ? "to-amber-500"
+      : "to-emerald-500";
+  const heroShadow = offSeason
+    ? "shadow-[0_20px_60px_rgba(71,85,105,0.22)]"
+    : allOff
+      ? "shadow-[0_20px_60px_rgba(245,158,11,0.22)]"
+      : "shadow-[0_20px_60px_rgba(16,185,129,0.20)]";
+  const heroPillLabel = offSeason
+    ? data.resumesOn
+      ? `Off-season · back ${formatDateShort(data.resumesOn)}`
+      : "Off-season"
+    : allOff
+      ? "All cancelled this week"
+      : anyOff
+        ? "Some cancelled this week"
+        : "Game on this week";
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     data.address,
   )}`;
@@ -181,7 +207,9 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
-              {allOff ? (
+              {offSeason ? (
+                <CalendarOff className="h-3.5 w-3.5" />
+              ) : allOff ? (
                 <XCircle className="h-3.5 w-3.5" />
               ) : (
                 <span className="relative inline-flex h-2 w-2 items-center justify-center">
@@ -209,6 +237,12 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-400">
             When
           </p>
+          {data.season ? (
+            <p className="-mt-1 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <CalendarRange className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              Season: {formatSeason(data.season)}
+            </p>
+          ) : null}
           <ul className="flex flex-col gap-3">
             {upcomingSchedules.map((s) => {
               const rel = relativeDay(s.thisWeek.date);
@@ -225,21 +259,29 @@ export function LocationDetail({ id }: { id: Id<"locations"> }) {
                     <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     {formatTimeRange(s.startTime, s.endTime)}
                   </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
-                        s.thisWeek.isOn
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
-                          : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
-                      }`}
-                    >
-                      {s.thisWeek.isOn ? "On" : "Off"} · {rel}
-                    </span>
-                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                      {formatDateLong(s.thisWeek.date)}
-                    </span>
-                  </div>
-                  {!s.thisWeek.isOn && s.thisWeek.reason ? (
+                  {!s.thisWeek.inSeason ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        Off-season
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
+                          s.thisWeek.isOn
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                            : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                        }`}
+                      >
+                        {s.thisWeek.isOn ? "On" : "Off"} · {rel}
+                      </span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {formatDateLong(s.thisWeek.date)}
+                      </span>
+                    </div>
+                  )}
+                  {s.thisWeek.inSeason && !s.thisWeek.isOn && s.thisWeek.reason ? (
                     <p className="mt-2 text-xs italic text-rose-700 dark:text-rose-300">
                       {s.thisWeek.reason}
                     </p>

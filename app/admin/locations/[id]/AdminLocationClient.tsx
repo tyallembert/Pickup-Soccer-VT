@@ -23,11 +23,13 @@ import { SettingsForm } from "@/app/_components/SettingsForm";
 import { StatusForm } from "@/app/_components/StatusForm";
 import { RecapForm } from "@/app/_components/RecapForm";
 import { SchedulesEditor } from "@/app/_components/SchedulesEditor";
+import { OffSeasonNote } from "@/app/_components/OffSeasonNote";
 import { MaintainersPanel } from "@/app/_components/MaintainersPanel";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
 import { SegmentedTabs, type SegmentedTab } from "@/app/_components/ui/segmented-tabs";
 import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
 import { upcomingGameDay, mostRecentPastGameDay } from "@/convex/lib/dates";
+import { isInSeason, lastInSeasonDate } from "@/convex/lib/season";
 
 type Status = "pending" | "approved" | "rejected";
 export type Tab = "details" | "thisWeek" | "lastSession" | "maintainers";
@@ -277,8 +279,9 @@ export function AdminLocationClient({
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
-                onSave={async (rows) => {
-                  await setSchedules({ id, schedules: rows });
+                initialSeason={data.season ?? null}
+                onSave={async (rows, season) => {
+                  await setSchedules({ id, schedules: rows, season });
                 }}
               />
             </div>
@@ -292,24 +295,31 @@ export function AdminLocationClient({
             subtitle="Force each upcoming slot on or off."
           >
             <div className="flex flex-col gap-6">
-              {data.schedules.map((s) => (
-                <div
-                  key={s._id}
-                  className="rounded-2xl border border-zinc-200 bg-white/60 p-4 dark:border-zinc-800 dark:bg-zinc-950/60"
-                >
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
-                    {formatDayPlural(s.dayOfWeek)} · {formatStartTime(s.startTime)}
-                  </p>
-                  <StatusForm
-                    date={upcomingGameDay(now, s.dayOfWeek, s.startTime)}
-                    isOn={true}
-                    reason={undefined}
-                    onSave={async ({ isOn, reason }) => {
-                      await setStatus({ scheduleId: s._id, isOn, reason });
-                    }}
-                  />
-                </div>
-              ))}
+              {data.schedules.map((s) => {
+                const date = upcomingGameDay(now, s.dayOfWeek, s.startTime);
+                return (
+                  <div
+                    key={s._id}
+                    className="rounded-2xl border border-zinc-200 bg-white/60 p-4 dark:border-zinc-800 dark:bg-zinc-950/60"
+                  >
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+                      {formatDayPlural(s.dayOfWeek)} · {formatStartTime(s.startTime)}
+                    </p>
+                    {isInSeason(date, data.season) ? (
+                      <StatusForm
+                        date={date}
+                        isOn={true}
+                        reason={undefined}
+                        onSave={async ({ isOn, reason }) => {
+                          await setStatus({ scheduleId: s._id, isOn, reason });
+                        }}
+                      />
+                    ) : (
+                      <OffSeasonNote date={date} season={data.season ?? null} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </PanelCard>
         ) : null}
@@ -340,7 +350,10 @@ export function AdminLocationClient({
                     {formatDayPlural(s.dayOfWeek)} · {formatStartTime(s.startTime)}
                   </p>
                   <RecapForm
-                    date={mostRecentPastGameDay(now, s.dayOfWeek, s.startTime)}
+                    date={lastInSeasonDate(
+                      mostRecentPastGameDay(now, s.dayOfWeek, s.startTime),
+                      data.season,
+                    )}
                     initial={{}}
                     onSave={async (v) => {
                       await saveRecap({ scheduleId: s._id, ...v });
