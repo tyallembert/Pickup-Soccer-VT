@@ -186,7 +186,7 @@ export function AdminLocationClient({
 
       {/* Admin control bar — destructive + status overrides live here */}
       <section className="admin-loc-anim flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/80 px-4 py-3 shadow-sm dark:border-zinc-800 dark:from-zinc-950 dark:to-zinc-900/70">
-        <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
+        <div className="flex basis-full items-center gap-2 text-zinc-600 sm:basis-auto dark:text-zinc-300">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900/90 text-white shadow-sm dark:bg-zinc-200 dark:text-zinc-900">
             <Shield className="h-3.5 w-3.5" />
           </span>
@@ -195,12 +195,12 @@ export function AdminLocationClient({
           </p>
         </div>
 
-        <span className="ml-auto" aria-hidden />
+        <span className="ml-auto hidden sm:block" aria-hidden />
 
         {status !== "pending" ? (
           <button
             onClick={() => remoderate({ id })}
-            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 sm:h-auto sm:flex-none sm:py-1.5 sm:text-xs transition hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Re-moderate
@@ -210,14 +210,14 @@ export function AdminLocationClient({
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-rose-50/40 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100/70 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/60"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full border border-rose-300 bg-rose-50/40 px-3 text-sm font-semibold text-rose-700 sm:h-auto sm:flex-none sm:py-1.5 sm:text-xs transition hover:bg-rose-100/70 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/60"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete
           </button>
         ) : (
-          <div className="flex flex-wrap items-center gap-2 rounded-full bg-rose-50 px-2 py-1 dark:bg-rose-950/40">
-            <span className="pl-1 text-xs font-medium text-rose-800 dark:text-rose-200">
+          <div className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-rose-50 p-2 sm:w-auto sm:rounded-full sm:px-2 sm:py-1 dark:bg-rose-950/40">
+            <span className="basis-full pl-1 text-sm font-medium text-rose-800 sm:basis-auto sm:text-xs dark:text-rose-200">
               Delete this submission?
             </span>
             <button
@@ -225,14 +225,14 @@ export function AdminLocationClient({
                 await del({ id });
                 router.push("/admin/locations");
               }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(225,29,72,0.35)] transition hover:bg-rose-800"
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-700 px-3 text-sm font-semibold text-white sm:h-auto sm:flex-none sm:py-1.5 sm:text-xs shadow-[0_4px_12px_rgba(225,29,72,0.35)] transition hover:bg-rose-800"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Yes, delete
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-950 dark:text-zinc-200"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-rose-200 bg-white px-3 text-sm font-semibold text-zinc-700 sm:h-auto sm:flex-none sm:py-1.5 sm:text-xs transition hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-950 dark:text-zinc-200"
             >
               Cancel
             </button>

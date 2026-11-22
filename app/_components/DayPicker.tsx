@@ -87,7 +87,7 @@ export function DayPicker({
           value={String(d.v)}
           title={d.long}
           className={cn(
-            "relative z-10 h-9 w-full rounded-full px-0 text-xs font-bold transition-colors",
+            "relative z-10 h-10 w-full rounded-full px-0 text-xs font-bold transition-colors",
             "hover:bg-transparent hover:text-emerald-800 dark:hover:text-emerald-200",
             "data-[state=on]:bg-transparent data-[state=on]:text-white data-[state=on]:shadow-none data-[state=on]:hover:bg-transparent data-[state=on]:hover:text-white",
           )}

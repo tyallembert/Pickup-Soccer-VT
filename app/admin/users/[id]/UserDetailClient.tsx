@@ -68,7 +68,7 @@ export function UserDetailClient({ id }: { id: Id<"users"> }) {
 
   return (
     <div ref={root} className="flex flex-col gap-6">
-      <div className="user-anim">
+      <div className="user-anim app:hidden">
         <BackLink />
       </div>
 
@@ -148,7 +148,7 @@ export function UserDetailClient({ id }: { id: Id<"users"> }) {
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{l.name}</p>
+                    <p className="line-clamp-2 break-words leading-snug text-sm font-semibold">{l.name}</p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
                       {l.town}
                     </p>
@@ -190,7 +190,7 @@ export function UserDetailClient({ id }: { id: Id<"users"> }) {
                     <Handshake className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
+                    <p className="line-clamp-2 break-words leading-snug text-sm font-semibold">
                       {m.locationName}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">
@@ -216,7 +216,7 @@ function BackLink() {
   return (
     <Link
       href="/admin/users"
-      className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 transition hover:text-emerald-600 app:hidden dark:text-zinc-400"
+      className="-my-2 inline-flex items-center gap-1 py-2 text-xs font-semibold text-zinc-500 transition hover:text-emerald-600 dark:text-zinc-400"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
       All users

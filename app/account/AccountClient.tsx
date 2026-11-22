@@ -64,6 +64,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
         duration: 0.5,
         ease: "power3.out",
         stagger: 0.07,
+        clearProps: "opacity,transform",
       });
     },
     { scope: root, dependencies: [isLoading] },
@@ -112,7 +113,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
       {isAdmin ? (
         <Link
           href="/admin"
-          className="account-anim flex items-center gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100 sm:px-5 sm:py-4 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+          className="account-anim flex items-center gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 transition-colors hover:border-emerald-400 hover:bg-emerald-100 sm:px-5 sm:py-4 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
         >
           <Shield className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
           <span className="flex-1 min-w-0">
@@ -145,7 +146,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
           </div>
           <Link
             href="/submit"
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:scale-[1.03]"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white shadow transition hover:scale-[1.03]"
           >
             <Plus className="h-3.5 w-3.5" />
             Add
@@ -163,7 +164,7 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
             </p>
             <Link
               href="/submit"
-              className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow"
+              className="mt-2 inline-flex h-10 items-center gap-1 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white shadow"
             >
               <Plus className="h-3.5 w-3.5" /> Add a pickup game
             </Link>
@@ -184,8 +185,8 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 line-clamp-2 break-words leading-snug font-semibold text-zinc-900 dark:text-zinc-100">
                         {l.name}
                       </p>
                       <span
@@ -243,8 +244,8 @@ export function AccountClient({ email, role }: { email: string; role: string }) 
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate font-semibold text-zinc-900 dark:text-zinc-100">
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 line-clamp-2 break-words leading-snug font-semibold text-zinc-900 dark:text-zinc-100">
                         {l.name}
                       </p>
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">

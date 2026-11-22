@@ -128,7 +128,7 @@ export function QueueClient() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <p className="line-clamp-2 break-words leading-snug text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       {r.name}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">

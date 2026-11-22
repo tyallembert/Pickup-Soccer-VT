@@ -164,6 +164,42 @@ body {
   animation: fade-out 100ms ease-in, zoom-out 100ms ease-in;
 }
 
+/* Sheets slide in from their edge instead of the fade/zoom above. The bottom
+   sheet (the app's More menu) rises like an iOS action sheet. Radix waits for
+   the closing animation before unmounting, so it slides back down too. */
+@keyframes sheet-in-bottom { from { transform: translateY(100%) } to { transform: translateY(0) } }
+@keyframes sheet-out-bottom { from { transform: translateY(0) } to { transform: translateY(100%) } }
+[data-slot="sheet-content"][data-side="bottom"][data-state="open"] {
+  animation: sheet-in-bottom 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-slot="sheet-content"][data-side="bottom"][data-state="closed"] {
+  animation: sheet-out-bottom 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-slot="sheet-overlay"][data-state="open"] {
+  animation: fade-in 300ms ease-out;
+}
+[data-slot="sheet-overlay"][data-state="closed"] {
+  animation: fade-out 260ms ease-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sheet-content"][data-side="bottom"][data-state="open"] {
+    animation: fade-in 150ms ease-out;
+  }
+  [data-slot="sheet-content"][data-side="bottom"][data-state="closed"] {
+    animation: fade-out 150ms ease-in;
+  }
+}
+
+/* iOS Safari zooms the page into any focused field under 16px. On touch
+   screens, keep form fields at 16px; unlayered, so it beats text-xs/text-sm. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* ---- Installed app on a phone ----
    `app:` styles apply when the site runs as an installed PWA (display-mode
    standalone, or navigator.standalone on iOS) on a phone-width screen. The

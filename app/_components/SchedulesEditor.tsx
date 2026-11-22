@@ -143,7 +143,7 @@ export function SchedulesEditor({
           onClick={handleSave}
           disabled={pending || !dirty || firstError !== null}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition active:scale-[0.98]",
+            "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition active:scale-[0.98]",
             !dirty || firstError !== null
               ? "cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-500"
               : "bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-sm shadow-emerald-600/30 hover:scale-[1.02] hover:shadow-md disabled:opacity-60",
@@ -151,13 +151,13 @@ export function SchedulesEditor({
         >
           {pending ? (
             <>
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               Saving
             </>
           ) : (
             <>
-              <Save className="h-3 w-3" />
-              Save
+              <Save className="h-3.5 w-3.5" />
+              Save schedule
             </>
           )}
         </button>

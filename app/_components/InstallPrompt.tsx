@@ -74,7 +74,7 @@ export function InstallPrompt() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="-mr-1 shrink-0 rounded-full p-1.5 text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+        className="-my-1 -mr-2 shrink-0 rounded-full p-2.5 text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
       >
         <X className="h-4 w-4" />
       </button>

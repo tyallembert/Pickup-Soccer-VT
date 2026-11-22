@@ -136,13 +136,13 @@ export function AllLocationsClient() {
                       ? `/admin/locations/${r._id}?tab=maintainers`
                       : `/admin/locations/${r._id}`
                   }
-                  className="group flex items-center gap-3 px-5 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="group flex items-center gap-2 px-4 py-3 transition hover:bg-zinc-50 sm:gap-3 sm:px-5 dark:hover:bg-zinc-900"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <p className="line-clamp-2 break-words leading-snug text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       {r.name}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">{r.town}</p>
@@ -157,7 +157,7 @@ export function AllLocationsClient() {
                     </span>
                   ) : null}
                   <StatusPill status={r.status} />
-                  <span className="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">
+                  <span className="hidden text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600 sm:inline">
                     →
                   </span>
                 </Link>
