@@ -8,8 +8,18 @@ import {
   type ScheduleRow,
 } from "@/app/_components/SlotCard";
 import { SlotsSection } from "@/app/_components/SlotsSection";
+import { validateSeason, type Season } from "@/convex/lib/season";
 
 export type { ScheduleRow };
+
+function seasonsEqual(a: Season | null, b: Season | null): boolean {
+  return (
+    a?.start.month === b?.start.month &&
+    a?.start.day === b?.start.day &&
+    a?.end.month === b?.end.month &&
+    a?.end.day === b?.end.day
+  );
+}
 
 function rowsEqual(a: ScheduleRow[], b: ScheduleRow[]): boolean {
   if (a.length !== b.length) return false;
@@ -28,31 +38,42 @@ function rowsEqual(a: ScheduleRow[], b: ScheduleRow[]): boolean {
 
 export function SchedulesEditor({
   initial,
+  initialSeason,
   onSave,
 }: {
   initial: ScheduleRow[];
-  onSave: (rows: ScheduleRow[]) => Promise<void>;
+  initialSeason: Season | null;
+  onSave: (rows: ScheduleRow[], season: Season | null) => Promise<void>;
 }) {
-  const [rows, setRows] = useState<ScheduleRow[]>(initial);
+  const [draft, setDraft] = useState({ rows: initial, season: initialSeason });
+  const { rows, season } = draft;
   const [pending, setPending] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Sync from live Convex updates when the upstream snapshot changes.
   useEffect(() => {
-    setRows(initial);
-  }, [initial]);
+    setDraft({ rows: initial, season: initialSeason });
+  }, [initial, initialSeason]);
 
-  const dirty = useMemo(() => !rowsEqual(rows, initial), [rows, initial]);
+  const dirty = useMemo(
+    () => !rowsEqual(rows, initial) || !seasonsEqual(season, initialSeason),
+    [rows, initial, season, initialSeason],
+  );
   const firstError = useMemo(() => {
     for (let i = 0; i < rows.length; i++) {
       const err = validateScheduleRow(rows[i]);
       if (err) return `Slot ${i + 1} — ${err}`;
     }
     if (rows.length < 1) return "A field needs at least one time slot.";
+    if (season) return validateSeason(season);
     return null;
-  }, [rows]);
+  }, [rows, season]);
 
+  const setRows = (fn: (rs: ScheduleRow[]) => ScheduleRow[]) =>
+    setDraft((d) => ({ ...d, rows: fn(d.rows) }));
+  const setSeason = (next: Season | null) =>
+    setDraft((d) => ({ ...d, season: next }));
   const patchRow = (i: number, patch: Partial<ScheduleRow>) =>
     setRows((rs) => rs.map((r, j) => (i === j ? { ...r, ...patch } : r)));
   const removeRow = (i: number) => {
@@ -70,7 +91,7 @@ export function SchedulesEditor({
     }
     setPending(true);
     try {
-      await onSave(rows);
+      await onSave(rows, season);
       setSavedAt(Date.now());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save.");
@@ -88,6 +109,8 @@ export function SchedulesEditor({
         onPatch={patchRow}
         onRemove={removeRow}
         onAdd={addRow}
+        season={season}
+        onSeasonChange={setSeason}
         headerSlot={
           dirty ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

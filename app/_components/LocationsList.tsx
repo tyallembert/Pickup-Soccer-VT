@@ -10,7 +10,8 @@ export type ListSchedule = {
   dayOfWeek: number;
   startTime: string;
   endTime?: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
+  /** `inSeason: false` = the field's season doesn't cover this week. */
+  thisWeek: { date: string; isOn: boolean; reason?: string; inSeason?: boolean };
 };
 
 export type ListLocation = {

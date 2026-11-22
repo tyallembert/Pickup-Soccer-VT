@@ -3,6 +3,8 @@ import { mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 import { requireAuth, requirePrimaryOwnerOf } from "./lib/auth";
+import { validateSeason } from "./lib/season";
+import { seasonValidator } from "./schema";
 
 const MAX_NOT_YET_APPROVED = 3;
 
@@ -21,12 +23,18 @@ export const submitLocation = mutation({
         endTime: v.optional(v.string()),
       }),
     ),
+    // Absent = year-round.
+    season: v.optional(seasonValidator),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
 
     if (args.schedules.length < 1) {
       throw new ConvexError("A location must have at least one schedule.");
+    }
+    if (args.season) {
+      const problem = validateSeason(args.season);
+      if (problem) throw new ConvexError(problem);
     }
 
     const pending = await ctx.db

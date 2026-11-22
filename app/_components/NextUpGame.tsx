@@ -22,7 +22,7 @@ export type NextSchedule = {
   dayOfWeek: number;
   startTime: string;
   endTime?: string;
-  thisWeek: { date: string; isOn: boolean; reason?: string };
+  thisWeek: { date: string; isOn: boolean; reason?: string; inSeason?: boolean };
 };
 
 export type NextLocation = {
@@ -46,6 +46,8 @@ function pickNext(locations: NextLocation[] | undefined): Pick | null {
   const flat: Pick[] = [];
   for (const l of locations) {
     for (const s of l.schedules) {
+      // No game that week: the field's season doesn't cover it.
+      if (s.thisWeek.inSeason === false) continue;
       flat.push({
         locationId: l._id,
         name: l.name,

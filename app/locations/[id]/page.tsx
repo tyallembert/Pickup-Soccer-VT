@@ -3,7 +3,12 @@ import { fetchQuery } from "convex/nextjs";
 import { LocationDetail } from "./LocationDetail";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import {
+  formatDayPlural,
+  formatSeason,
+  formatStartTime,
+} from "@/app/_lib/format";
+import type { Season } from "@/convex/lib/season";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://vermontpickupsoccer.com";
@@ -40,7 +45,8 @@ export async function generateMetadata({
   const day = primarySchedule ? formatDayPlural(primarySchedule.dayOfWeek) : "weekly";
   const time = primarySchedule ? formatStartTime(primarySchedule.startTime) : "";
   const title = `${loc.name} — Pickup Soccer in ${loc.town}, VT`;
-  const description = `Free pickup soccer ${day.toLowerCase()} at ${time} in ${loc.town}, Vermont. ${loc.name} — ${loc.address}. ${loc.details ? loc.details.slice(0, 140) : ""}`.trim();
+  const season = loc.season ? ` (${formatSeason(loc.season)})` : "";
+  const description = `Free pickup soccer ${day.toLowerCase()} at ${time}${season} in ${loc.town}, Vermont. ${loc.name} — ${loc.address}. ${loc.details ? loc.details.slice(0, 140) : ""}`.trim();
   const path = `/locations/${id}`;
 
   return {
@@ -138,6 +144,7 @@ export default async function LocationPage({
                     ][s.dayOfWeek],
                   ),
                   startTime: loc.schedules[0].startTime,
+                  ...(loc.season ? { byMonth: seasonMonths(loc.season) } : {}),
                 },
                 eventStatus: loc.schedules[0].thisWeek?.isOn
                   ? "https://schema.org/EventScheduled"
@@ -183,4 +190,16 @@ export default async function LocationPage({
       <LocationDetail id={id as Id<"locations">} />
     </>
   );
+}
+
+/** The months a season touches, in order: October → April is 10, 11, 12, 1…4. */
+function seasonMonths(season: Season): number[] {
+  const months: number[] = [];
+  let m = season.start.month;
+  for (let i = 0; i < 12; i++) {
+    months.push(m);
+    if (m === season.end.month) break;
+    m = (m % 12) + 1;
+  }
+  return months;
 }

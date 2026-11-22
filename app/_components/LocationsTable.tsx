@@ -143,7 +143,12 @@ export function LocationsTable({ locations }: { locations: ListLocation[] }) {
               <Td>
                 <div className="flex flex-col gap-1">
                   {l.schedules.map((s) => (
-                    <StatusPill key={s._id} on={s.thisWeek.isOn} reason={s.thisWeek.reason} />
+                    <StatusPill
+                      key={s._id}
+                      on={s.thisWeek.isOn}
+                      reason={s.thisWeek.reason}
+                      offSeason={s.thisWeek.inSeason === false}
+                    />
                   ))}
                 </div>
               </Td>
@@ -210,7 +215,23 @@ function Td({
   return <td className={cn("px-4 py-3 align-middle", className)}>{children}</td>;
 }
 
-function StatusPill({ on, reason }: { on: boolean; reason?: string }) {
+function StatusPill({
+  on,
+  reason,
+  offSeason,
+}: {
+  on: boolean;
+  reason?: string;
+  offSeason: boolean;
+}) {
+  if (offSeason) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] whitespace-nowrap text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+        Off-season
+      </span>
+    );
+  }
   return (
     <span
       title={!on && reason ? reason : undefined}

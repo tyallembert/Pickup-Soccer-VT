@@ -10,7 +10,11 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { LocationPin } from "@/app/_components/LocationPin";
 import { Avatar, AvatarFallback, initialsFromEmail } from "@/app/_components/ui/avatar";
-import { formatDayPlural, formatStartTime } from "@/app/_lib/format";
+import {
+  formatDayPlural,
+  formatSeason,
+  formatStartTime,
+} from "@/app/_lib/format";
 import posthog from "posthog-js";
 
 export function ReviewClient({ id }: { id: Id<"locations"> }) {
@@ -127,6 +131,9 @@ export function ReviewClient({ id }: { id: Id<"locations"> }) {
                 {formatDayPlural(s.dayOfWeek)} at {formatStartTime(s.startTime)}
               </p>
             ))}
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              {data.season ? `Season: ${formatSeason(data.season)}` : "Year-round"}
+            </p>
           </div>
           {data.details ? (
             <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-zinc-50 p-3 font-mono text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">

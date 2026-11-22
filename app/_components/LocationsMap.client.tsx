@@ -19,7 +19,7 @@ export type MapSchedule = {
   dayOfWeek: number;
   startTime: string;
   endTime?: string;
-  thisWeek: { isOn: boolean };
+  thisWeek: { isOn: boolean; inSeason?: boolean };
 };
 
 export type MapLocation = {
@@ -195,12 +195,17 @@ export default function LocationsMapClient({
                           <li key={s._id} className="flex items-center gap-1.5">
                             <span
                               className={
-                                s.thisWeek.isOn
-                                  ? "inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
-                                  : "inline-block h-1.5 w-1.5 rounded-full bg-rose-500"
+                                s.thisWeek.inSeason === false
+                                  ? "inline-block h-1.5 w-1.5 rounded-full bg-zinc-400"
+                                  : s.thisWeek.isOn
+                                    ? "inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                                    : "inline-block h-1.5 w-1.5 rounded-full bg-rose-500"
                               }
                             />
                             {formatDayPlural(s.dayOfWeek)} at {formatTimeRange(s.startTime, s.endTime)}
+                            {s.thisWeek.inSeason === false ? (
+                              <span className="text-zinc-500"> · off-season</span>
+                            ) : null}
                           </li>
                         ))}
                       </ul>
